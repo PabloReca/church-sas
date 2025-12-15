@@ -1,0 +1,3 @@
+name: church-sas-infra
+runtime: nodejs
+description: Infrastructure for Church SaaS

@@ -1,0 +1,16 @@
+{
+  "name": "infrastructure",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@pulumi/pulumi": "^3.212.0",
+    "@pulumiverse/vercel": "^3.15.1"
+  }
+}

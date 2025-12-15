@@ -1,0 +1,14 @@
+{
+  "name": "church-sas",
+  "private": true,
+  "workspaces": ["apps/*", "infrastructure"],
+  "type": "module",
+  "scripts": {
+    "dev": "bun --filter api dev & bun --filter web dev",
+    "dev:api": "bun --filter api dev",
+    "dev:web": "bun --filter web dev"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
