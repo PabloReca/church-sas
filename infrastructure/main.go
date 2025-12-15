@@ -9,7 +9,7 @@ func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
 		repo := "PabloReca/church-sas"
 
-		// API Preprod
+		// API Preprod (main branch)
 		apiPreprod, _ := vercel.NewProject(ctx, "church-sas-api-preprod", &vercel.ProjectArgs{
 			Name:          pulumi.String("church-sas-api-preprod"),
 			Framework:     pulumi.String("hono"),
@@ -21,7 +21,7 @@ func main() {
 			},
 		})
 
-		// API Prod
+		// API Prod (solo tags v*)
 		apiProd, _ := vercel.NewProject(ctx, "church-sas-api-prod", &vercel.ProjectArgs{
 			Name:          pulumi.String("church-sas-api-prod"),
 			Framework:     pulumi.String("hono"),
@@ -29,11 +29,13 @@ func main() {
 			GitRepository: &vercel.ProjectGitRepositoryArgs{
 				Type:             pulumi.String("github"),
 				Repo:             pulumi.String(repo),
-				ProductionBranch: pulumi.String("release"),
+				ProductionBranch: pulumi.String("main"),
 			},
+			// Solo deploya si es tag v*
+			IgnoreCommand: pulumi.String("if [[ ! \"$VERCEL_GIT_COMMIT_REF\" =~ ^v[0-9] ]]; then exit 1; fi"),
 		})
 
-		// Web Preprod
+		// Web Preprod (main branch)
 		webPreprod, _ := vercel.NewProject(ctx, "church-sas-web-preprod", &vercel.ProjectArgs{
 			Name:          pulumi.String("church-sas-web-preprod"),
 			Framework:     pulumi.String("vite"),
@@ -45,7 +47,7 @@ func main() {
 			},
 		})
 
-		// Web Prod
+		// Web Prod (solo tags v*)
 		webProd, _ := vercel.NewProject(ctx, "church-sas-web-prod", &vercel.ProjectArgs{
 			Name:          pulumi.String("church-sas-web-prod"),
 			Framework:     pulumi.String("vite"),
@@ -53,8 +55,10 @@ func main() {
 			GitRepository: &vercel.ProjectGitRepositoryArgs{
 				Type:             pulumi.String("github"),
 				Repo:             pulumi.String(repo),
-				ProductionBranch: pulumi.String("release"),
+				ProductionBranch: pulumi.String("main"),
 			},
+			// Solo deploya si es tag v*
+			IgnoreCommand: pulumi.String("if [[ ! \"$VERCEL_GIT_COMMIT_REF\" =~ ^v[0-9] ]]; then exit 1; fi"),
 		})
 
 		ctx.Export("apiPreprodUrl", apiPreprod.Name.ApplyT(func(name string) string {
