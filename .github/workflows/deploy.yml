@@ -7,10 +7,26 @@ on:
     types: [published]
 
 jobs:
-  deploy-api-preprod:
-    if: github.event_name == 'push'
+  changes:
     runs-on: ubuntu-latest
-    environment: preprod
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+            web:
+              - 'apps/web/**'
+
+  deploy-api-preprod:
+    needs: changes
+    if: github.event_name == 'push' && needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -20,12 +36,13 @@ jobs:
         run: |
           bun x vercel deploy \
             --token=${{ secrets.VERCEL_TOKEN }} \
+            --name=church-sas-api-preprod \
             --yes
 
   deploy-api-prod:
-    if: github.event_name == 'release'
+    needs: changes
+    if: github.event_name == 'release' && needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
-    environment: prod
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -35,13 +52,14 @@ jobs:
         run: |
           bun x vercel deploy \
             --token=${{ secrets.VERCEL_TOKEN }} \
+            --name=church-sas-api-prod \
             --prod \
             --yes
 
   deploy-web-preprod:
-    if: github.event_name == 'push'
+    needs: changes
+    if: github.event_name == 'push' && needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
-    environment: preprod
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -51,12 +69,13 @@ jobs:
         run: |
           bun x vercel deploy \
             --token=${{ secrets.VERCEL_TOKEN }} \
+            --name=church-sas-web-preprod \
             --yes
 
   deploy-web-prod:
-    if: github.event_name == 'release'
+    needs: changes
+    if: github.event_name == 'release' && needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
-    environment: prod
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -66,5 +85,6 @@ jobs:
         run: |
           bun x vercel deploy \
             --token=${{ secrets.VERCEL_TOKEN }} \
+            --name=church-sas-web-prod \
             --prod \
             --yes
