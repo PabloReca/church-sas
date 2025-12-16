@@ -1,15 +1,23 @@
-# infrastructure
+# Infrastructure
 
-To install dependencies:
+Creates Vercel projects for Church SaaS.
 
+## Setup
 ```bash
-bun install
+pulumi config set vercel:apiToken YOUR_TOKEN --secret
+pulumi stack init church-sas
 ```
 
-To run:
-
+## Deploy
 ```bash
-bun run index.ts
+pulumi up
 ```
 
-This project was created using `bun init` in bun v1.3.4. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+## Projects
+
+- church-sas-api-preprod
+- church-sas-api-prod
+- church-sas-web-preprod
+- church-sas-web-prod
+
+GitHub Actions handles deployments.

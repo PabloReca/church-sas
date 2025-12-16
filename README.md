@@ -26,13 +26,12 @@ bun dev:api      # API only (:8000)
 bun dev:web      # Web only (:5173)
 ```
 
-## Setup deployments on vercel
+## Setup projects on vercel
 ```bash
 cd infrastructure
 pulumi up
 ```
 
 ## Deploy source
-
 - Preprod → on `main` branch
 - Production → on `release`

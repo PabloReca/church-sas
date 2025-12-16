@@ -1,0 +1,85 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+            web:
+              - 'apps/web/**'
+
+  deploy-api:
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: oven-sh/setup-bun@v2
+      
+      - name: Deploy API
+        working-directory: apps/api
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            PROJECT_NAME="church-sas-api-prod"
+            PROD_FLAG="--prod"
+          else
+            PROJECT_NAME="church-sas-api-preprod"
+            PROD_FLAG=""
+          fi
+          
+          bun x vercel deploy \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --name=$PROJECT_NAME \
+            --yes \
+            $PROD_FLAG
+
+  deploy-web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: oven-sh/setup-bun@v2
+      
+      - name: Install
+        working-directory: apps/web
+        run: bun install
+      
+      - name: Build
+        working-directory: apps/web
+        run: bun run build
+      
+      - name: Deploy Web
+        working-directory: apps/web
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            PROJECT_NAME="church-sas-web-prod"
+            PROD_FLAG="--prod"
+          else
+            PROJECT_NAME="church-sas-web-preprod"
+            PROD_FLAG=""
+          fi
+          
+          bun x vercel deploy \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --name=$PROJECT_NAME \
+            --prebuilt \
+            --yes \
+            $PROD_FLAG
