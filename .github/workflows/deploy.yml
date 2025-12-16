@@ -8,6 +8,7 @@ on:
 
 jobs:
   changes:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
       api: ${{ steps.filter.outputs.api }}
@@ -23,6 +24,7 @@ jobs:
             web:
               - 'apps/web/**'
 
+  # PREPROD - Solo despliega cambios
   deploy-api-preprod:
     needs: changes
     if: github.event_name == 'push' && needs.changes.outputs.api == 'true'
@@ -37,23 +39,6 @@ jobs:
           bun x vercel deploy \
             --token=${{ secrets.VERCEL_TOKEN }} \
             --name=church-sas-api-preprod \
-            --yes
-
-  deploy-api-prod:
-    needs: changes
-    if: github.event_name == 'release' && needs.changes.outputs.api == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      
-      - name: Deploy API Prod
-        working-directory: apps/api
-        run: |
-          bun x vercel deploy \
-            --token=${{ secrets.VERCEL_TOKEN }} \
-            --name=church-sas-api-prod \
-            --prod \
             --yes
 
   deploy-web-preprod:
@@ -72,9 +57,25 @@ jobs:
             --name=church-sas-web-preprod \
             --yes
 
+  # PROD - Siempre despliega todo en releases
+  deploy-api-prod:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      
+      - name: Deploy API Prod
+        working-directory: apps/api
+        run: |
+          bun x vercel deploy \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --name=church-sas-api-prod \
+            --prod \
+            --yes
+
   deploy-web-prod:
-    needs: changes
-    if: github.event_name == 'release' && needs.changes.outputs.web == 'true'
+    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
