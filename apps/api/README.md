@@ -1,15 +1,31 @@
-# api
+# Church API
 
-To install dependencies:
+## Setup
 
 ```bash
 bun install
+cp .env.example .env  # Edit with your values
+bun run db:push
+bun run dev
 ```
 
-To run:
+## Create First Admin
 
 ```bash
-bun run index.ts
+curl -X POST http://localhost:8000/admin/setup \
+  -H "Content-Type: application/json" \
+  -d '{"email": "your@email.com"}'
 ```
 
-This project was created using `bun init` in bun v1.3.4. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+## Health Checks
+
+- Liveness: `GET /health`
+- Readiness: `GET /health/ready`
+
+## Commands
+
+```bash
+bun run dev          # Development
+bun run db:push      # Apply schema
+bun run db:studio    # Visual DB editor
+```
