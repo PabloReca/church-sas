@@ -1,5 +1,5 @@
 {
-  "id": "38b9afe6-d78f-42af-80db-7d1ebaa05b9e",
+  "id": "b011bd22-0cad-4cb3-ab5f-f615404b76c1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -26,21 +26,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "lastname_1": {
-          "name": "lastname_1",
+        "lastname": {
+          "name": "lastname",
           "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "lastname_2": {
-          "name": "lastname_2",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "phone": {
-          "name": "phone",
-          "type": "varchar(50)",
           "primaryKey": false,
           "notNull": false
         },
@@ -123,6 +111,60 @@
           "nullsNotDistinct": false,
           "columns": [
             "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "platform.keys": {
+      "name": "keys",
+      "schema": "platform",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_minor": {
+          "name": "is_minor",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "transposition_index": {
+          "name": "transposition_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "keys_name_is_minor_transposition_index_unique": {
+          "name": "keys_name_is_minor_transposition_index_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name",
+            "is_minor",
+            "transposition_index"
           ]
         }
       },
@@ -330,6 +372,240 @@
       },
       "isRLSEnabled": false
     },
+    "customer.songs": {
+      "name": "songs",
+      "schema": "customer",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "artist": {
+          "name": "artist",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "album": {
+          "name": "album",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "release_year": {
+          "name": "release_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bpm": {
+          "name": "bpm",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration": {
+          "name": "duration",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chords_and_lyrics": {
+          "name": "chords_and_lyrics",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "time_sig_num": {
+          "name": "time_sig_num",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "time_sig_den": {
+          "name": "time_sig_den",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_male_lead": {
+          "name": "is_male_lead",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "original_key_id": {
+          "name": "original_key_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recommended_male_offset": {
+          "name": "recommended_male_offset",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recommended_female_offset": {
+          "name": "recommended_female_offset",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "spotify_url": {
+          "name": "spotify_url",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "apple_music_url": {
+          "name": "apple_music_url",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "youtube_url": {
+          "name": "youtube_url",
+          "type": "varchar(200)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inclusion_date": {
+          "name": "inclusion_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "songs_tenant_id_idx": {
+          "name": "songs_tenant_id_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "songs_original_key_id_idx": {
+          "name": "songs_original_key_id_idx",
+          "columns": [
+            {
+              "expression": "original_key_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "songs_tenant_id_tenants_id_fk": {
+          "name": "songs_tenant_id_tenants_id_fk",
+          "tableFrom": "songs",
+          "tableTo": "tenants",
+          "schemaTo": "customer",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "songs_original_key_id_keys_id_fk": {
+          "name": "songs_original_key_id_keys_id_fk",
+          "tableFrom": "songs",
+          "tableTo": "keys",
+          "schemaTo": "platform",
+          "columnsFrom": [
+            "original_key_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "songs_release_year_check": {
+          "name": "songs_release_year_check",
+          "value": "\"customer\".\"songs\".\"release_year\" >= 1000 AND \"customer\".\"songs\".\"release_year\" <= 3000"
+        },
+        "songs_bpm_check": {
+          "name": "songs_bpm_check",
+          "value": "\"customer\".\"songs\".\"bpm\" >= 40 AND \"customer\".\"songs\".\"bpm\" <= 300"
+        },
+        "songs_duration_check": {
+          "name": "songs_duration_check",
+          "value": "\"customer\".\"songs\".\"duration\" >= 60 AND \"customer\".\"songs\".\"duration\" <= 900"
+        },
+        "songs_chords_and_lyrics_not_empty": {
+          "name": "songs_chords_and_lyrics_not_empty",
+          "value": "length(\"customer\".\"songs\".\"chords_and_lyrics\") > 0 AND length(\"customer\".\"songs\".\"chords_and_lyrics\") <= 4000"
+        },
+        "songs_time_sig_num_check": {
+          "name": "songs_time_sig_num_check",
+          "value": "\"customer\".\"songs\".\"time_sig_num\" >= 1 AND \"customer\".\"songs\".\"time_sig_num\" <= 32"
+        },
+        "songs_time_sig_den_check": {
+          "name": "songs_time_sig_den_check",
+          "value": "\"customer\".\"songs\".\"time_sig_den\" IN (1, 2, 4, 8, 16, 32)"
+        },
+        "songs_recommended_male_offset_check": {
+          "name": "songs_recommended_male_offset_check",
+          "value": "\"customer\".\"songs\".\"recommended_male_offset\" >= -11 AND \"customer\".\"songs\".\"recommended_male_offset\" <= 11"
+        },
+        "songs_recommended_female_offset_check": {
+          "name": "songs_recommended_female_offset_check",
+          "value": "\"customer\".\"songs\".\"recommended_female_offset\" >= -11 AND \"customer\".\"songs\".\"recommended_female_offset\" <= 11"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "customer.tenant_event_assignments": {
       "name": "tenant_event_assignments",
       "schema": "customer",
@@ -358,8 +634,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "person_id": {
-          "name": "person_id",
+        "user_id": {
+          "name": "user_id",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true
@@ -418,11 +694,11 @@
           "method": "btree",
           "with": {}
         },
-        "tenant_event_assignments_person_id_idx": {
-          "name": "tenant_event_assignments_person_id_idx",
+        "tenant_event_assignments_user_id_idx": {
+          "name": "tenant_event_assignments_user_id_idx",
           "columns": [
             {
-              "expression": "person_id",
+              "expression": "user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -477,16 +753,16 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "tenant_event_assignments_person_id_people_id_fk": {
-          "name": "tenant_event_assignments_person_id_people_id_fk",
+        "tenant_event_assignments_user_id_tenant_users_person_id_fk": {
+          "name": "tenant_event_assignments_user_id_tenant_users_person_id_fk",
           "tableFrom": "tenant_event_assignments",
-          "tableTo": "people",
+          "tableTo": "tenant_users",
           "schemaTo": "customer",
           "columnsFrom": [
-            "person_id"
+            "user_id"
           ],
           "columnsTo": [
-            "id"
+            "person_id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -1096,6 +1372,70 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "customer.tenant_members": {
+      "name": "tenant_members",
+      "schema": "customer",
+      "columns": {
+        "person_id": {
+          "name": "person_id",
+          "type": "bigint",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "member_since": {
+          "name": "member_since",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "tenant_members_person_id_idx": {
+          "name": "tenant_members_person_id_idx",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "tenant_members_person_id_people_id_fk": {
+          "name": "tenant_members_person_id_people_id_fk",
+          "tableFrom": "tenant_members",
+          "tableTo": "people",
+          "schemaTo": "customer",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "customer.tenant_people_field_values": {
       "name": "tenant_people_field_values",
       "schema": "customer",
@@ -1326,8 +1666,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "customer.tenant_skill_concurrency": {
-      "name": "tenant_skill_concurrency",
+    "customer.tenant_skill_incompatibility": {
+      "name": "tenant_skill_incompatibility",
       "schema": "customer",
       "columns": {
         "skill_id_1": {
@@ -1357,8 +1697,8 @@
         }
       },
       "indexes": {
-        "tenant_skill_concurrency_tenant_id_idx": {
-          "name": "tenant_skill_concurrency_tenant_id_idx",
+        "tenant_skill_incompatibility_tenant_id_idx": {
+          "name": "tenant_skill_incompatibility_tenant_id_idx",
           "columns": [
             {
               "expression": "tenant_id",
@@ -1372,8 +1712,8 @@
           "method": "btree",
           "with": {}
         },
-        "tenant_skill_concurrency_skill1_idx": {
-          "name": "tenant_skill_concurrency_skill1_idx",
+        "tenant_skill_incompatibility_skill1_idx": {
+          "name": "tenant_skill_incompatibility_skill1_idx",
           "columns": [
             {
               "expression": "skill_id_1",
@@ -1387,8 +1727,8 @@
           "method": "btree",
           "with": {}
         },
-        "tenant_skill_concurrency_skill2_idx": {
-          "name": "tenant_skill_concurrency_skill2_idx",
+        "tenant_skill_incompatibility_skill2_idx": {
+          "name": "tenant_skill_incompatibility_skill2_idx",
           "columns": [
             {
               "expression": "skill_id_2",
@@ -1404,9 +1744,9 @@
         }
       },
       "foreignKeys": {
-        "tenant_skill_concurrency_skill_id_1_tenant_team_skills_id_fk": {
-          "name": "tenant_skill_concurrency_skill_id_1_tenant_team_skills_id_fk",
-          "tableFrom": "tenant_skill_concurrency",
+        "tenant_skill_incompatibility_skill_id_1_tenant_team_skills_id_fk": {
+          "name": "tenant_skill_incompatibility_skill_id_1_tenant_team_skills_id_fk",
+          "tableFrom": "tenant_skill_incompatibility",
           "tableTo": "tenant_team_skills",
           "schemaTo": "customer",
           "columnsFrom": [
@@ -1418,9 +1758,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "tenant_skill_concurrency_skill_id_2_tenant_team_skills_id_fk": {
-          "name": "tenant_skill_concurrency_skill_id_2_tenant_team_skills_id_fk",
-          "tableFrom": "tenant_skill_concurrency",
+        "tenant_skill_incompatibility_skill_id_2_tenant_team_skills_id_fk": {
+          "name": "tenant_skill_incompatibility_skill_id_2_tenant_team_skills_id_fk",
+          "tableFrom": "tenant_skill_incompatibility",
           "tableTo": "tenant_team_skills",
           "schemaTo": "customer",
           "columnsFrom": [
@@ -1432,9 +1772,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "tenant_skill_concurrency_tenant_id_tenants_id_fk": {
-          "name": "tenant_skill_concurrency_tenant_id_tenants_id_fk",
-          "tableFrom": "tenant_skill_concurrency",
+        "tenant_skill_incompatibility_tenant_id_tenants_id_fk": {
+          "name": "tenant_skill_incompatibility_tenant_id_tenants_id_fk",
+          "tableFrom": "tenant_skill_incompatibility",
           "tableTo": "tenants",
           "schemaTo": "customer",
           "columnsFrom": [
@@ -1449,8 +1789,8 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "tenant_skill_concurrency_pk": {
-          "name": "tenant_skill_concurrency_pk",
+        "tenant_skill_incompatibility_pk": {
+          "name": "tenant_skill_incompatibility_pk",
           "nullsNotDistinct": false,
           "columns": [
             "skill_id_1",
@@ -1627,8 +1967,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "person_id": {
-          "name": "person_id",
+        "user_id": {
+          "name": "user_id",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true
@@ -1669,11 +2009,11 @@
           "method": "btree",
           "with": {}
         },
-        "tenant_team_members_person_id_idx": {
-          "name": "tenant_team_members_person_id_idx",
+        "tenant_team_members_user_id_idx": {
+          "name": "tenant_team_members_user_id_idx",
           "columns": [
             {
-              "expression": "person_id",
+              "expression": "user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1715,16 +2055,16 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "tenant_team_members_person_id_people_id_fk": {
-          "name": "tenant_team_members_person_id_people_id_fk",
+        "tenant_team_members_user_id_tenant_users_person_id_fk": {
+          "name": "tenant_team_members_user_id_tenant_users_person_id_fk",
           "tableFrom": "tenant_team_members",
-          "tableTo": "people",
+          "tableTo": "tenant_users",
           "schemaTo": "customer",
           "columnsFrom": [
-            "person_id"
+            "user_id"
           ],
           "columnsTo": [
-            "id"
+            "person_id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -1746,12 +2086,12 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "tenant_team_person_unique": {
-          "name": "tenant_team_person_unique",
+        "tenant_team_user_unique": {
+          "name": "tenant_team_user_unique",
           "nullsNotDistinct": false,
           "columns": [
             "team_id",
-            "person_id"
+            "user_id"
           ]
         }
       },

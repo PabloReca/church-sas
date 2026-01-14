@@ -6,6 +6,7 @@ import {
   tenantSkillIncompatibility,
   tenantTeamMemberSkills,
   tenantTeamMembers,
+  tenantUsers,
   people,
 } from "@/db/schema";
 import {
@@ -37,29 +38,30 @@ export const eventAssignmentsRouter = {
         throw new ORPCError("NOT_FOUND", { message: "Event slot not found" });
       }
 
-      // Verify person belongs to tenant
-      const [person] = await context.db
+      // Verify user exists and belongs to tenant
+      const [user] = await context.db
         .select()
-        .from(people)
+        .from(tenantUsers)
+        .innerJoin(people, eq(tenantUsers.personId, people.id))
         .where(
           and(
-            eq(people.id, input.personId),
+            eq(tenantUsers.personId, input.userId),
             eq(people.tenantId, input.tenantId)
           )
         )
         .limit(1);
 
-      if (!person) {
-        throw new ORPCError("NOT_FOUND", { message: "Person not found in this tenant" });
+      if (!user) {
+        throw new ORPCError("NOT_FOUND", { message: "Active user not found in this tenant" });
       }
 
-      // Verify person is member of the required team and has the required skill
+      // Verify user is member of the required team and has the required skill
       const [teamMember] = await context.db
         .select()
         .from(tenantTeamMembers)
         .where(
           and(
-            eq(tenantTeamMembers.personId, input.personId),
+            eq(tenantTeamMembers.userId, input.userId),
             eq(tenantTeamMembers.teamId, slot.teamId),
             eq(tenantTeamMembers.tenantId, input.tenantId)
           )
@@ -67,7 +69,7 @@ export const eventAssignmentsRouter = {
         .limit(1);
 
       if (!teamMember) {
-        throw new ORPCError("BAD_REQUEST", { message: "Person is not a member of the required team" });
+        throw new ORPCError("BAD_REQUEST", { message: "User is not a member of the required team" });
       }
 
       const [memberSkill] = await context.db
@@ -82,10 +84,10 @@ export const eventAssignmentsRouter = {
         .limit(1);
 
       if (!memberSkill) {
-        throw new ORPCError("BAD_REQUEST", { message: "Person does not have the required skill" });
+        throw new ORPCError("BAD_REQUEST", { message: "User does not have the required skill" });
       }
 
-      // Check existing assignments for this person in this event
+      // Check existing assignments for this user in this event
       const existingAssignments = await context.db
         .select({
           skillId: tenantEventSlots.skillId,
@@ -96,16 +98,16 @@ export const eventAssignmentsRouter = {
         .where(
           and(
             eq(tenantEventAssignments.eventId, input.eventId),
-            eq(tenantEventAssignments.personId, input.personId)
+            eq(tenantEventAssignments.userId, input.userId)
           )
         );
 
       if (existingAssignments.length > 0) {
-        // Check that person is only assigned to ONE team per event
+        // Check that user is only assigned to ONE team per event
         const existingTeamId = existingAssignments[0]!.teamId;
         if (existingTeamId !== slot.teamId) {
           throw new ORPCError("BAD_REQUEST", {
-            message: "Person can only be assigned to one team per event",
+            message: "User can only be assigned to one team per event",
           });
         }
 
@@ -142,7 +144,7 @@ export const eventAssignmentsRouter = {
           eventId: input.eventId,
           slotId: input.slotId,
           tenantId: input.tenantId,
-          personId: input.personId,
+          userId: input.userId,
         })
         .returning();
 

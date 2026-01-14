@@ -46,6 +46,16 @@ let tenantBOwnerEmailId: number;
 let tenantBOwnerId: number;
 
 beforeAll(async () => {
+  // Clean up any existing test data first
+  await db.delete(tenants).where(eq(tenants.slug, "tenant-a-events"));
+  await db.delete(tenants).where(eq(tenants.slug, "tenant-b-events"));
+
+  // Clean up test emails
+  await db.delete(emails).where(eq(emails.email, "owner-a-events@test.com"));
+  await db.delete(emails).where(eq(emails.email, "admin-a-events@test.com"));
+  await db.delete(emails).where(eq(emails.email, "member-a-events@test.com"));
+  await db.delete(emails).where(eq(emails.email, "owner-b-events@test.com"));
+
   // Create plan
   const [plan] = await db.insert(tenantPlans).values({
     name: "Test Plan Events",
@@ -114,13 +124,13 @@ beforeAll(async () => {
   const [teamMemberA] = await db.insert(tenantTeamMembers).values({
     tenantId: tenantAId,
     teamId: tenantATeamId,
-    personId: tenantAMemberId,
+    userId: tenantAMemberId,
   }).returning();
 
   const [teamMemberA2] = await db.insert(tenantTeamMembers).values({
     tenantId: tenantAId,
     teamId: tenantATeam2Id,
-    personId: tenantAMemberId,
+    userId: tenantAMemberId,
   }).returning();
 
   // Create skill for Team 2
@@ -211,39 +221,66 @@ beforeAll(async () => {
 
 afterAll(async () => {
   // Clean up in reverse order of dependencies
-  await db.delete(tenantEventAssignments).where(eq(tenantEventAssignments.tenantId, tenantAId));
-  await db.delete(tenantEventAssignments).where(eq(tenantEventAssignments.tenantId, tenantBId));
-  await db.delete(tenantEventSlots).where(eq(tenantEventSlots.tenantId, tenantAId));
-  await db.delete(tenantEventSlots).where(eq(tenantEventSlots.tenantId, tenantBId));
-  await db.delete(tenantEvents).where(eq(tenantEvents.tenantId, tenantAId));
-  await db.delete(tenantEvents).where(eq(tenantEvents.tenantId, tenantBId));
-  await db.delete(tenantEventTemplateSlots).where(eq(tenantEventTemplateSlots.tenantId, tenantAId));
-  await db.delete(tenantEventTemplateSlots).where(eq(tenantEventTemplateSlots.tenantId, tenantBId));
-  await db.delete(tenantEventTemplates).where(eq(tenantEventTemplates.tenantId, tenantAId));
-  await db.delete(tenantEventTemplates).where(eq(tenantEventTemplates.tenantId, tenantBId));
-  await db.delete(tenantSkillIncompatibility).where(eq(tenantSkillIncompatibility.tenantId, tenantAId));
-  await db.delete(tenantTeamMemberSkills).where(eq(tenantTeamMemberSkills.tenantId, tenantAId));
-  await db.delete(tenantTeamMemberSkills).where(eq(tenantTeamMemberSkills.tenantId, tenantBId));
-  await db.delete(tenantTeamSkills).where(eq(tenantTeamSkills.tenantId, tenantAId));
-  await db.delete(tenantTeamSkills).where(eq(tenantTeamSkills.tenantId, tenantBId));
-  await db.delete(tenantTeamMembers).where(eq(tenantTeamMembers.tenantId, tenantAId));
-  await db.delete(tenantTeamMembers).where(eq(tenantTeamMembers.tenantId, tenantBId));
-  await db.delete(tenantTeams).where(eq(tenantTeams.id, tenantATeamId));
-  await db.delete(tenantTeams).where(eq(tenantTeams.id, tenantATeam2Id));
-  await db.delete(tenantTeams).where(eq(tenantTeams.tenantId, tenantBId));
-  await db.delete(tenantUsers).where(eq(tenantUsers.personId, tenantAOwnerId));
-  await db.delete(tenantUsers).where(eq(tenantUsers.personId, tenantAAdminId));
-  await db.delete(tenantUsers).where(eq(tenantUsers.personId, tenantAMemberId));
-  await db.delete(tenantUsers).where(eq(tenantUsers.personId, tenantBOwnerId));
-  await db.delete(people).where(eq(people.tenantId, tenantAId));
-  await db.delete(people).where(eq(people.tenantId, tenantBId));
-  await db.delete(emails).where(eq(emails.id, tenantAOwnerEmailId));
-  await db.delete(emails).where(eq(emails.id, tenantAAdminEmailId));
-  await db.delete(emails).where(eq(emails.id, tenantAMemberEmailId));
-  await db.delete(emails).where(eq(emails.id, tenantBOwnerEmailId));
-  await db.delete(tenants).where(eq(tenants.id, tenantAId));
-  await db.delete(tenants).where(eq(tenants.id, tenantBId));
-  await db.delete(tenantPlans).where(eq(tenantPlans.id, planId));
+  // Only delete if IDs are defined (beforeAll succeeded)
+  if (tenantAId !== undefined) {
+    await db.delete(tenantEventAssignments).where(eq(tenantEventAssignments.tenantId, tenantAId));
+    await db.delete(tenantEventSlots).where(eq(tenantEventSlots.tenantId, tenantAId));
+    await db.delete(tenantEvents).where(eq(tenantEvents.tenantId, tenantAId));
+    await db.delete(tenantEventTemplateSlots).where(eq(tenantEventTemplateSlots.tenantId, tenantAId));
+    await db.delete(tenantEventTemplates).where(eq(tenantEventTemplates.tenantId, tenantAId));
+    await db.delete(tenantSkillIncompatibility).where(eq(tenantSkillIncompatibility.tenantId, tenantAId));
+    await db.delete(tenantTeamMemberSkills).where(eq(tenantTeamMemberSkills.tenantId, tenantAId));
+    await db.delete(tenantTeamSkills).where(eq(tenantTeamSkills.tenantId, tenantAId));
+    await db.delete(tenantTeamMembers).where(eq(tenantTeamMembers.tenantId, tenantAId));
+    await db.delete(people).where(eq(people.tenantId, tenantAId));
+    await db.delete(tenants).where(eq(tenants.id, tenantAId));
+  }
+  if (tenantBId !== undefined) {
+    await db.delete(tenantEventAssignments).where(eq(tenantEventAssignments.tenantId, tenantBId));
+    await db.delete(tenantEventSlots).where(eq(tenantEventSlots.tenantId, tenantBId));
+    await db.delete(tenantEvents).where(eq(tenantEvents.tenantId, tenantBId));
+    await db.delete(tenantEventTemplateSlots).where(eq(tenantEventTemplateSlots.tenantId, tenantBId));
+    await db.delete(tenantEventTemplates).where(eq(tenantEventTemplates.tenantId, tenantBId));
+    await db.delete(tenantTeamMemberSkills).where(eq(tenantTeamMemberSkills.tenantId, tenantBId));
+    await db.delete(tenantTeamSkills).where(eq(tenantTeamSkills.tenantId, tenantBId));
+    await db.delete(tenantTeamMembers).where(eq(tenantTeamMembers.tenantId, tenantBId));
+    await db.delete(tenantTeams).where(eq(tenantTeams.tenantId, tenantBId));
+    await db.delete(people).where(eq(people.tenantId, tenantBId));
+    await db.delete(tenants).where(eq(tenants.id, tenantBId));
+  }
+  if (tenantATeamId !== undefined) {
+    await db.delete(tenantTeams).where(eq(tenantTeams.id, tenantATeamId));
+  }
+  if (tenantATeam2Id !== undefined) {
+    await db.delete(tenantTeams).where(eq(tenantTeams.id, tenantATeam2Id));
+  }
+  if (tenantAOwnerId !== undefined) {
+    await db.delete(tenantUsers).where(eq(tenantUsers.personId, tenantAOwnerId));
+  }
+  if (tenantAAdminId !== undefined) {
+    await db.delete(tenantUsers).where(eq(tenantUsers.personId, tenantAAdminId));
+  }
+  if (tenantAMemberId !== undefined) {
+    await db.delete(tenantUsers).where(eq(tenantUsers.personId, tenantAMemberId));
+  }
+  if (tenantBOwnerId !== undefined) {
+    await db.delete(tenantUsers).where(eq(tenantUsers.personId, tenantBOwnerId));
+  }
+  if (tenantAOwnerEmailId !== undefined) {
+    await db.delete(emails).where(eq(emails.id, tenantAOwnerEmailId));
+  }
+  if (tenantAAdminEmailId !== undefined) {
+    await db.delete(emails).where(eq(emails.id, tenantAAdminEmailId));
+  }
+  if (tenantAMemberEmailId !== undefined) {
+    await db.delete(emails).where(eq(emails.id, tenantAMemberEmailId));
+  }
+  if (tenantBOwnerEmailId !== undefined) {
+    await db.delete(emails).where(eq(emails.id, tenantBOwnerEmailId));
+  }
+  if (planId !== undefined) {
+    await db.delete(tenantPlans).where(eq(tenantPlans.id, planId));
+  }
 });
 
 describe("Events Router", () => {
@@ -401,13 +438,13 @@ describe("Events Router", () => {
           tenantId: tenantAId,
           eventId,
           slotId,
-          personId: tenantAMemberId,
+          userId: tenantAMemberId,
         },
         ctx.asUser(tenantAOwnerId, "owner-a-events@test.com", "Owner A").inTenant(tenantAId).asTenantOwner()
       );
 
       expect(result).toBeDefined();
-      expect(result.personId).toBe(tenantAMemberId);
+      expect(result.userId).toBe(tenantAMemberId);
     });
 
     test("cannot assign person from another tenant", async () => {
@@ -418,11 +455,11 @@ describe("Events Router", () => {
             tenantId: tenantAId,
             eventId,
             slotId,
-            personId: tenantBOwnerId,
+            userId: tenantBOwnerId,
           },
           ctx.asUser(tenantAOwnerId, "owner-a-events@test.com", "Owner A").inTenant(tenantAId).asTenantOwner()
         )
-      ).rejects.toThrow("Person not found in this tenant");
+      ).rejects.toThrow("Active user not found in this tenant");
     });
 
     test("cannot assign person without required skill", async () => {
@@ -434,7 +471,7 @@ describe("Events Router", () => {
             tenantId: tenantAId,
             eventId,
             slotId,
-            personId: tenantAOwnerId,
+            userId: tenantAOwnerId,
           },
           ctx.asUser(tenantAOwnerId, "owner-a-events@test.com", "Owner A").inTenant(tenantAId).asTenantOwner()
         )
@@ -460,7 +497,7 @@ describe("Events Router", () => {
             tenantId: tenantAId,
             eventId,
             slotId: skill3Slot!.id,
-            personId: tenantAMemberId,
+            userId: tenantAMemberId,
           },
           ctx.asUser(tenantAOwnerId, "owner-a-events@test.com", "Owner A").inTenant(tenantAId).asTenantOwner()
         )
@@ -485,7 +522,7 @@ describe("Events Router", () => {
           tenantId: tenantAId,
           eventId,
           slotId: skill2Slot!.id,
-          personId: tenantAMemberId,
+          userId: tenantAMemberId,
         },
         ctx.asUser(tenantAOwnerId, "owner-a-events@test.com", "Owner A").inTenant(tenantAId).asTenantOwner()
       );
@@ -511,7 +548,7 @@ describe("Events Router", () => {
             tenantId: tenantAId,
             eventId,
             slotId,
-            personId: tenantAMemberId,
+            userId: tenantAMemberId,
           },
           ctx.asUser(tenantAMemberId, "member-a-events@test.com", "Member A").inTenant(tenantAId)
         )
@@ -536,11 +573,11 @@ describe("Events Router", () => {
             tenantId: tenantAId,
             eventId,
             slotId: team2Slot!.id,
-            personId: tenantAMemberId,
+            userId: tenantAMemberId,
           },
           ctx.asUser(tenantAOwnerId, "owner-a-events@test.com", "Owner A").inTenant(tenantAId).asTenantOwner()
         )
-      ).rejects.toThrow("Person can only be assigned to one team per event");
+      ).rejects.toThrow("User can only be assigned to one team per event");
     });
   });
 

@@ -12,9 +12,7 @@ export const adminRouter = {
           id: admins.id,
           email: emails.email,
           name: admins.name,
-          lastname1: admins.lastname1,
-          lastname2: admins.lastname2,
-          phone: admins.phone,
+          lastname: admins.lastname,
           createdAt: admins.createdAt,
           updatedAt: admins.updatedAt,
         })
@@ -55,9 +53,7 @@ export const adminRouter = {
           .values({
             emailId: existingEmail.id,
             name: input.name,
-            lastname1: input.lastname1,
-            lastname2: input.lastname2,
-            phone: input.phone,
+            lastname: input.lastname,
           })
           .returning();
 
@@ -67,26 +63,32 @@ export const adminRouter = {
         };
       }
 
-      // Create new email record
-      const [newEmail] = await context.db
-        .insert(emails)
-        .values({ email: normalizedEmail })
-        .returning();
+      // Create new email record and admin in transaction
+      const result = await context.db.transaction(async (tx) => {
+        const [newEmail] = await tx
+          .insert(emails)
+          .values({ email: normalizedEmail })
+          .returning();
 
-      if (!newEmail) {
-        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Failed to create email record" });
-      }
+        if (!newEmail) {
+          throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Failed to create email record" });
+        }
 
-      const [result] = await context.db
-        .insert(admins)
-        .values({
-          emailId: newEmail.id,
-          name: input.name,
-          lastname1: input.lastname1,
-          lastname2: input.lastname2,
-          phone: input.phone,
-        })
-        .returning();
+        const [admin] = await tx
+          .insert(admins)
+          .values({
+            emailId: newEmail.id,
+            name: input.name,
+            lastname: input.lastname,
+          })
+          .returning();
+
+        if (!admin) {
+          throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Failed to create admin" });
+        }
+
+        return admin;
+      });
 
       return {
         ...result,

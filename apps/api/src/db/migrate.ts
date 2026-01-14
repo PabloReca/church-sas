@@ -2,16 +2,17 @@
 import { readdir, readFile } from "fs/promises";
 import { join } from "path";
 import postgres from "postgres";
+import { logger } from "@/lib/logger";
 
 if (!process.env.DATABASE_URL) {
-  console.error("DATABASE_URL environment variable is required");
+  logger.error("DATABASE_URL environment variable is required");
   process.exit(1);
 }
 
 const client = postgres(process.env.DATABASE_URL);
 const MIGRATIONS_DIR = join(import.meta.dir, "../../drizzle");
 
-console.log("Starting database migration...\n");
+logger.info("Starting database migration...");
 
 try {
   await client.unsafe(`
@@ -26,19 +27,19 @@ try {
   const sqlFiles = files.filter(f => f.endsWith(".sql")).sort();
 
   if (sqlFiles.length === 0) {
-    console.log("No migration files found");
+    logger.info("No migration files found");
     process.exit(0);
   }
 
   for (const file of sqlFiles) {
-    console.log(`Applying migration: ${file}`);
+    logger.info({ file }, 'Applying migration');
 
     const [existing] = await client<{ hash: string }[]>`
       SELECT hash FROM drizzle_migrations WHERE hash = ${file}
     `;
 
     if (existing) {
-      console.log("  Already applied, skipping");
+      logger.info("  Already applied, skipping");
       continue;
     }
 
@@ -49,12 +50,12 @@ try {
       INSERT INTO drizzle_migrations (hash) VALUES (${file})
     `;
 
-    console.log("  Applied successfully");
+    logger.info("  Applied successfully");
   }
 
-  console.log("\nAll migrations completed!");
+  logger.info("All migrations completed!");
 } catch (error) {
-  console.error("Migration failed:", error);
+  logger.error({ err: error }, "Migration failed");
   process.exit(1);
 } finally {
   await client.end();

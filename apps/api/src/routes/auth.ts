@@ -7,16 +7,16 @@ import { generateJWT, verifyJWT, generatePendingJWT, verifyPendingJWT } from '@/
 import { config } from '@/config'
 import { eq } from 'drizzle-orm'
 import { setupTenantInput } from '@/db/schemas-zod'
+import { logger } from '@/lib/logger'
 
 const auth = new Hono()
 
 // Google OAuth redirect
 auth.get('/google', (c) => {
-  const redirectUri = `${config.api.url}/auth/google/callback`
   const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth')
 
   googleAuthUrl.searchParams.set('client_id', config.google.clientId)
-  googleAuthUrl.searchParams.set('redirect_uri', redirectUri)
+  googleAuthUrl.searchParams.set('redirect_uri', config.google.callbackUrl)
   googleAuthUrl.searchParams.set('response_type', 'code')
   googleAuthUrl.searchParams.set('scope', 'openid email profile')
   googleAuthUrl.searchParams.set('access_type', 'offline')
@@ -37,7 +37,6 @@ auth.get('/google/callback', async (c) => {
     const db = getDb()
 
     // Exchange code for tokens
-    const redirectUri = `${config.api.url}/auth/google/callback`
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -45,7 +44,7 @@ auth.get('/google/callback', async (c) => {
         code,
         client_id: config.google.clientId,
         client_secret: config.google.clientSecret,
-        redirect_uri: redirectUri,
+        redirect_uri: config.google.callbackUrl,
         grant_type: 'authorization_code',
       }),
     })
@@ -160,7 +159,7 @@ auth.get('/google/callback', async (c) => {
     // Redirect to frontend
     return c.redirect(config.frontend.url)
   } catch (error) {
-    console.error('OAuth callback error:', error)
+    logger.error({ err: error }, 'OAuth callback error')
     return c.redirect(`${config.frontend.url}/login?error=auth_failed`)
   }
 })

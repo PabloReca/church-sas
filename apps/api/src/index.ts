@@ -1,3 +1,8 @@
+// IMPORTANT: Initialize OpenTelemetry FIRST, before any other imports
+// This ensures auto-instrumentation can properly hook into all modules
+import { initializeOTel } from '@/lib/otel'
+initializeOTel()
+
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { RPCHandler } from '@orpc/server/fetch'
@@ -9,13 +14,17 @@ import { appRouter } from '@/rpc/routers'
 import { createContext } from '@/rpc/context'
 import auth from '@/routes/auth'
 import upload from '@/routes/upload'
-import csv from '@/routes/csv'
 import health from '@/routes/health'
+import { logger } from '@/lib/logger'
+import { otelMiddleware } from '@/lib/otel-middleware'
 
 const app = new Hono()
 
 // Allowed origins
 const allowedOrigins = ['http://localhost:3000', config.frontend.url].filter(Boolean)
+
+// OpenTelemetry tracing middleware (must be first to trace all requests)
+app.use('/*', otelMiddleware)
 
 // CORS
 app.use(
@@ -27,6 +36,25 @@ app.use(
     credentials: true,
   })
 )
+
+// HTTP Request Logging
+app.use('/*', async (c, next) => {
+  const start = Date.now()
+  const method = c.req.method
+  const path = c.req.path
+
+  await next()
+
+  const duration = Date.now() - start
+  const status = c.res.status
+
+  logger.info({
+    method,
+    path,
+    status,
+    duration,
+  }, 'HTTP Request')
+})
 
 // CSRF protection: verify Origin header on mutations
 app.use('/*', async (c, next) => {
@@ -69,13 +97,12 @@ app.get('/', (c) => {
 app.route('/health', health)
 app.route('/auth', auth)
 app.route('/upload', upload)
-app.route('/csv', csv)
 
 // ORPC Handler
 const rpcHandler = new RPCHandler(appRouter, {
   interceptors: [
     onError((error) => {
-      console.error('ORPC Error:', error)
+      logger.error({ err: error }, 'ORPC Error')
     })
   ],
 })
@@ -103,6 +130,10 @@ const openAPIGenerator = new OpenAPIGenerator({
 
 // OpenAPI JSON spec
 app.get('/openapi.json', async (c) => {
+  // Derive API URL from request origin
+  const origin = c.req.header('origin') || `http://localhost:${config.port}`
+  const apiUrl = origin.replace(/:\d+$/, `:${config.port}`)
+
   const spec = await openAPIGenerator.generate(appRouter, {
     info: {
       title: 'Church API',
@@ -110,7 +141,7 @@ app.get('/openapi.json', async (c) => {
       description: 'API for Church SaaS application',
     },
     servers: [
-      { url: config.api.url || 'http://localhost:4000', description: 'API Server' },
+      { url: apiUrl, description: 'API Server' },
     ],
     tags: [
       {

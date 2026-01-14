@@ -72,20 +72,50 @@ describe("Admin Router", () => {
   });
 
   describe("add", () => {
-    test("should add a new administrator", async () => {
+    test("should add a new administrator with new email", async () => {
       const result = await callAs(
         adminRouter.add,
         {
           email: "newadmin@test.com",
           name: "New Admin",
-          lastname1: "Last",
-          phone: "1234567890",
+          lastname: "Last",
         },
         ctx.asUser(1, adminEmail, "Test Admin").asAdmin()
       );
 
       expect(result?.email).toBe("newadmin@test.com");
       expect(result?.name).toBe("New Admin");
+    });
+
+    test("should reuse existing email when promoting to admin", async () => {
+      // First, create an email that exists but is not an admin yet
+      const existingEmail = "existing-user@test.com";
+      const [emailRecord] = await db.insert(emails).values({ email: existingEmail }).returning();
+
+      // Now add this email as admin (should reuse the email record)
+      const result = await callAs(
+        adminRouter.add,
+        {
+          email: existingEmail,
+          name: "Promoted Admin",
+          lastname: "User",
+        },
+        ctx.asUser(1, adminEmail, "Test Admin").asAdmin()
+      );
+
+      expect(result?.email).toBe(existingEmail);
+      expect(result?.name).toBe("Promoted Admin");
+
+      // Verify it used the existing email record
+      const allEmails = await db.select().from(emails).where(eq(emails.email, existingEmail));
+      expect(allEmails.length).toBe(1); // Should only have one email record
+
+      // Cleanup
+      const [adminRecord] = await db.select().from(admins).where(eq(admins.emailId, emailRecord!.id)).limit(1);
+      if (adminRecord) {
+        await db.delete(admins).where(eq(admins.id, adminRecord.id));
+      }
+      await db.delete(emails).where(eq(emails.id, emailRecord!.id));
     });
 
     test("should fail to add duplicate administrator", async () => {

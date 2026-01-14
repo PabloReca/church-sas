@@ -1,5 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose'
 import { config } from '@/config'
+import { logger } from '@/lib/logger'
 
 const GOOGLE_JWKS = createRemoteJWKSet(
   new URL('https://www.googleapis.com/oauth2/v3/certs')
@@ -30,7 +31,7 @@ export async function verifyGoogleToken(idToken: string): Promise<GoogleUser | n
       picture: payload.picture as string | undefined,
     }
   } catch (error) {
-    console.error('Error verifying Google token:', error)
+    logger.error({ err: error }, 'Error verifying Google token')
     return null
   }
 }

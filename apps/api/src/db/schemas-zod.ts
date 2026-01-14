@@ -73,7 +73,7 @@ export const updatePersonInput = personSchema
   .partial()
   .extend({
     personId: z.number(),
-    email: z.string().email().optional(),
+    // Email is NOT updatable - it's tied to OAuth identity
     fields: z.record(z.string(), z.string()).optional(),
     isActive: z.number().min(0).max(1).optional(),
   });
@@ -86,7 +86,7 @@ export const getPersonInTenantInput = z.object({ tenantId: z.number(), personId:
 // Administrator
 export const isAdminInput = z.object({ email: z.string().email() });
 export const addAdminInput = adminSchema
-  .pick({ name: true, lastname1: true, lastname2: true, phone: true })
+  .pick({ name: true, lastname: true })
   .extend({ email: z.string().email() });
 export const removeAdminInput = z.object({ id: z.number() });
 
@@ -123,12 +123,12 @@ export const getTeamInput = z.object({ tenantId: z.number(), teamId: z.number() 
 export const listTeamsInput = z.object({ tenantId: z.number() });
 
 // Team Member
-export const addTeamMemberInput = tenantTeamMemberSchema.pick({ tenantId: true, teamId: true, personId: true, role: true });
+export const addTeamMemberInput = tenantTeamMemberSchema.pick({ tenantId: true, teamId: true, userId: true, role: true });
 export const updateTeamMemberInput = tenantTeamMemberSchema
   .pick({ role: true })
   .partial()
-  .extend({ tenantId: z.number(), teamId: z.number(), personId: z.number() });
-export const removeTeamMemberInput = z.object({ tenantId: z.number(), teamId: z.number(), personId: z.number() });
+  .extend({ tenantId: z.number(), teamId: z.number(), userId: z.number() });
+export const removeTeamMemberInput = z.object({ tenantId: z.number(), teamId: z.number(), userId: z.number() });
 export const listTeamMembersInput = z.object({ tenantId: z.number(), teamId: z.number() });
 
 // Team Skill
@@ -228,7 +228,7 @@ export const createEventAssignmentInput = z.object({
   tenantId: z.number(),
   eventId: z.number(),
   slotId: z.number(),
-  personId: z.number(),
+  userId: z.number(),
 });
 export const deleteEventAssignmentInput = z.object({ tenantId: z.number(), assignmentId: z.number() });
 export const listEventAssignmentsInput = z.object({ tenantId: z.number(), eventId: z.number() });

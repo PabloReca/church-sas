@@ -1,24 +1,16 @@
 import * as Minio from "minio";
 import { config } from "@/config";
+import { logger } from "@/lib/logger";
 
-if (!config.minio) {
-  console.warn("Missing MINIO_URL environment variable. File upload will not work.");
-}
-
-const minioClient = config.minio
-  ? new Minio.Client({
-      endPoint: config.minio.host,
-      port: config.minio.port,
-      useSSL: config.minio.useSSL,
-      accessKey: config.minio.accessKey,
-      secretKey: config.minio.secretKey,
-    })
-  : null;
+const minioClient = new Minio.Client({
+  endPoint: config.minio.endpoint,
+  port: config.minio.port,
+  useSSL: config.minio.useSSL,
+  accessKey: config.minio.accessKey,
+  secretKey: config.minio.secretKey,
+});
 
 function getClient() {
-  if (!minioClient || !config.minio) {
-    throw new Error("MinIO not configured");
-  }
   return { client: minioClient, config: config.minio };
 }
 
@@ -40,7 +32,7 @@ export async function ensureBucket() {
       ],
     };
     await client.setBucketPolicy(minio.bucket, JSON.stringify(policy));
-    console.log(`Created bucket: ${minio.bucket}`);
+    logger.info({ bucket: minio.bucket }, 'Created bucket');
   }
 }
 

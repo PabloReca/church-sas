@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-import { getDb } from "../src/db/connection";
-import { tenantPlans } from "../src/db/schema-platform";
+import { getDb } from "../../src/db/connection";
+import { tenantPlans } from "../../src/db/schema-platform";
 import { eq } from "drizzle-orm";
 
 const PLANS = [
@@ -45,7 +45,7 @@ async function createPlans() {
       .limit(1);
 
     if (existing.length > 0) {
-      console.log(`  Plan "${plan.name}" already exists, skipping`);
+      console.log(`  Plan "${plan.name}" already exists`);
       continue;
     }
 
@@ -54,7 +54,6 @@ async function createPlans() {
   }
 
   console.log("Plans created successfully!");
-  process.exit(0);
 }
 
 createPlans().catch((error) => {

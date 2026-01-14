@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-import { getDb } from "../src/db/connection";
-import { emails, admins } from "../src/db/schema-platform";
+import { getDb } from "../../src/db/connection";
+import { emails, admins } from "../../src/db/schema-platform";
 import { eq } from "drizzle-orm";
 
 async function createFirstAdmin() {
@@ -22,8 +22,8 @@ async function createFirstAdmin() {
   const existingAdmins = await db.select().from(admins).limit(1);
 
   if (existingAdmins.length > 0) {
-    console.log("Admins already exist. Skipping.");
-    process.exit(0);
+    console.log("Admins already exist");
+    return;
   }
 
   // Check if email already exists
@@ -59,8 +59,7 @@ async function createFirstAdmin() {
     process.exit(1);
   }
 
-  console.log(`First admin created: ${normalizedEmail}`);
-  process.exit(0);
+  console.log(`✓ First admin created: ${normalizedEmail}`);
 }
 
 createFirstAdmin().catch((error) => {

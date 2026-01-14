@@ -6,9 +6,11 @@ export {
   emails,
   tenantPlans,
   admins,
+  keys,
   emailsRelations,
   adminsRelations,
   tenantPlansRelations,
+  keysRelations,
 } from "./schema-platform";
 
 export type {
@@ -18,6 +20,8 @@ export type {
   NewTenantPlan,
   Admin,
   NewAdmin,
+  Key,
+  NewKey,
 } from "./schema-platform";
 
 // Customer schema (operational data)
@@ -39,6 +43,7 @@ export {
   tenantEvents,
   tenantEventSlots,
   tenantEventAssignments,
+  songs,
   tenantsRelations,
   tenantPeopleFieldsRelations,
   peopleRelations,
@@ -55,6 +60,7 @@ export {
   tenantEventsRelations,
   tenantEventSlotsRelations,
   tenantEventAssignmentsRelations,
+  songsRelations,
 } from "./schema-customer";
 
 export type {
@@ -90,4 +96,6 @@ export type {
   NewTenantEventSlot,
   TenantEventAssignment,
   NewTenantEventAssignment,
+  Song,
+  NewSong,
 } from "./schema-customer";

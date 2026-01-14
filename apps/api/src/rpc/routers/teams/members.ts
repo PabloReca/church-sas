@@ -3,6 +3,7 @@ import { tenantProcedure, ORPCError, requireTenantUser } from "@/rpc/orpc";
 import {
   emails,
   tenantTeamMembers,
+  tenantUsers,
   people,
 } from "@/db/schema";
 import {
@@ -19,27 +20,28 @@ export const teamMembersRouter = {
     .handler(async ({ context, input }) => {
       await requireTenantUser(context, input.tenantId);
 
-      // Verify person exists and belongs to the same tenant
-      const [person] = await context.db
+      // Verify user exists (must be an active user, not just a person)
+      const [user] = await context.db
         .select()
-        .from(people)
+        .from(tenantUsers)
+        .innerJoin(people, eq(tenantUsers.personId, people.id))
         .where(
           and(
-            eq(people.id, input.personId),
+            eq(tenantUsers.personId, input.userId),
             eq(people.tenantId, input.tenantId)
           )
         )
         .limit(1);
 
-      if (!person) {
-        throw new ORPCError("NOT_FOUND", { message: "Person not found or does not belong to this tenant" });
+      if (!user) {
+        throw new ORPCError("NOT_FOUND", { message: "Active user not found or does not belong to this tenant" });
       }
 
       const [result] = await context.db
         .insert(tenantTeamMembers)
         .values({
           teamId: input.teamId,
-          personId: input.personId,
+          userId: input.userId,
           tenantId: input.tenantId,
           role: input.role,
         })
@@ -62,13 +64,13 @@ export const teamMembersRouter = {
         .select({
           id: tenantTeamMembers.id,
           teamId: tenantTeamMembers.teamId,
-          personId: tenantTeamMembers.personId,
+          userId: tenantTeamMembers.userId,
           role: tenantTeamMembers.role,
           createdAt: tenantTeamMembers.createdAt,
           email: emails.email,
         })
         .from(tenantTeamMembers)
-        .innerJoin(people, eq(tenantTeamMembers.personId, people.id))
+        .innerJoin(people, eq(tenantTeamMembers.userId, people.id))
         .leftJoin(emails, eq(people.emailId, emails.id))
         .where(
           and(
@@ -99,7 +101,7 @@ export const teamMembersRouter = {
         .where(
           and(
             eq(tenantTeamMembers.teamId, input.teamId),
-            eq(tenantTeamMembers.personId, input.personId),
+            eq(tenantTeamMembers.userId, input.userId),
             eq(tenantTeamMembers.tenantId, input.tenantId)
           )
         )
@@ -123,7 +125,7 @@ export const teamMembersRouter = {
         .where(
           and(
             eq(tenantTeamMembers.teamId, input.teamId),
-            eq(tenantTeamMembers.personId, input.personId),
+            eq(tenantTeamMembers.userId, input.userId),
             eq(tenantTeamMembers.tenantId, input.tenantId)
           )
         )

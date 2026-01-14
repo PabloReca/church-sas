@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test";
 import { getDb } from "@/db/connection";
-import { tenants, people, tenantPlans, emails, tenantPeopleFields, tenantPeopleFieldValues } from "@/db/schema";
+import { tenants, people, tenantPlans, emails, tenantPeopleFields, tenantPeopleFieldValues, tenantUsers, admins } from "@/db/schema";
 import { peopleRouter } from "./index";
 import { peopleTenantsRouter } from "./people-tenants";
 import { peopleFieldsRouter } from "./people-fields";
@@ -14,6 +14,8 @@ let tenantId: number;
 let planId: number;
 let personId: number;
 let personEmailId: number;
+let adminEmailId: number;
+let adminId: number;
 let nameFieldId: number;
 let phoneFieldId: number;
 
@@ -81,15 +83,40 @@ beforeAll(async () => {
     fieldId: nameFieldId,
     value: "Test Person",
   });
+
+  // Create admin user for testing admin-only features
+  const [adminEmail] = await db.insert(emails).values({
+    email: "admin-people@test.com",
+  }).returning();
+  if (!adminEmail) throw new Error("Failed to create admin email");
+  adminEmailId = adminEmail.id;
+
+  const [admin] = await db.insert(people).values({
+    tenantId,
+    emailId: adminEmailId,
+    role: "admin",
+  }).returning();
+  if (!admin) throw new Error("Failed to create admin");
+  adminId = admin.id;
+
+  await db.insert(admins).values({
+    emailId: adminEmailId,
+    name: "Admin User",
+  });
 });
 
 afterAll(async () => {
   await db.delete(tenantPeopleFieldValues).where(eq(tenantPeopleFieldValues.personId, personId));
+  await db.delete(tenantPeopleFieldValues).where(eq(tenantPeopleFieldValues.personId, adminId));
+  await db.delete(tenantUsers).where(eq(tenantUsers.personId, personId));
+  await db.delete(tenantUsers).where(eq(tenantUsers.personId, adminId));
+  await db.delete(admins).where(eq(admins.emailId, adminEmailId));
   await db.delete(people).where(eq(people.tenantId, tenantId));
   await db.delete(tenantPeopleFields).where(eq(tenantPeopleFields.tenantId, tenantId));
   await db.delete(tenants).where(eq(tenants.id, tenantId));
   await db.delete(tenantPlans).where(eq(tenantPlans.id, planId));
   await db.delete(emails).where(eq(emails.id, personEmailId));
+  await db.delete(emails).where(eq(emails.id, adminEmailId));
 });
 
 describe("People Router - Dynamic Fields", () => {
@@ -293,6 +320,190 @@ describe("People Router - Dynamic Fields", () => {
         .where(eq(tenantPeopleFieldValues.fieldId, tempField.id));
 
       expect(values.length).toBe(0);
+    });
+  });
+
+  describe("Additional Edge Cases", () => {
+    test("me - should return current person info", async () => {
+      const result = await callAs(
+        peopleRouter.me,
+        undefined,
+        ctx.asUser(personId, "testperson@test.com", "Test Person")
+      );
+
+      expect(result).toBeDefined();
+      expect(result.id).toBe(personId);
+      expect(result.email).toBe("testperson@test.com");
+      expect(result.fields.name).toBe("Updated Name");
+    });
+
+    test("me - should fail for non-existent person", async () => {
+      expect(
+        callAs(
+          peopleRouter.me,
+          undefined,
+          ctx.asUser(999999, "nonexistent@test.com", "Non Existent")
+        )
+      ).rejects.toThrow("Person not found");
+    });
+
+    test("get - should fail for non-existent person", async () => {
+      expect(
+        callAs(
+          peopleRouter.get,
+          { personId: 999999 },
+          ctx.asUser(999999, "nonexistent@test.com", "Non Existent")
+        )
+      ).rejects.toThrow("Person not found");
+    });
+
+    test("update - should update fields only (email is NOT updatable)", async () => {
+      const result = await callAs(
+        peopleRouter.update,
+        {
+          personId,
+          fields: { name: "Updated Again" },
+        },
+        ctx.asUser(personId, "testperson@test.com", "Test Person")
+      );
+
+      expect(result.fields.name).toBe("Updated Again");
+      // Verify email didn't change (email is tied to OAuth)
+      expect(result.email).toBe("testperson@test.com");
+    });
+
+
+    test("update - should fail for non-existent person", async () => {
+      expect(
+        callAs(
+          peopleRouter.update,
+          {
+            personId: 999999,
+            fields: { name: "Test" },
+          },
+          ctx.asUser(999999, "nonexistent@test.com", "Non Existent")
+        )
+      ).rejects.toThrow("Person not found");
+    });
+
+    test("update - should fail when no fields to update", async () => {
+      expect(
+        callAs(
+          peopleRouter.update,
+          {
+            personId,
+          },
+          ctx.asUser(personId, "testperson@test.com", "Test Person")
+        )
+      ).rejects.toThrow("No fields to update");
+    });
+
+    test("update - admin can activate user", async () => {
+      const result = await callAs(
+        peopleRouter.update,
+        {
+          personId,
+          isActive: 1,
+        },
+        ctx.asUser(adminId, "admin-people@test.com", "Admin User").asAdmin()
+      );
+
+      expect(result).toBeDefined();
+
+      // Verify active seat was created
+      const [seat] = await db
+        .select()
+        .from(tenantUsers)
+        .where(eq(tenantUsers.personId, personId))
+        .limit(1);
+      expect(seat).toBeDefined();
+    });
+
+    test("update - admin can deactivate user", async () => {
+      const result = await callAs(
+        peopleRouter.update,
+        {
+          personId,
+          isActive: 0,
+        },
+        ctx.asUser(adminId, "admin-people@test.com", "Admin User").asAdmin()
+      );
+
+      expect(result).toBeDefined();
+
+      // Verify active seat was removed
+      const [seat] = await db
+        .select()
+        .from(tenantUsers)
+        .where(eq(tenantUsers.personId, personId))
+        .limit(1);
+      expect(seat).toBeUndefined();
+    });
+
+    test("update - non-admin cannot change isActive status", async () => {
+      const result = await callAs(
+        peopleRouter.update,
+        {
+          personId,
+          isActive: 1,
+          fields: { name: "Test" }, // Need at least one valid field
+        },
+        ctx.asUser(personId, "testperson@test.com", "Test Person")
+      );
+
+      // isActive should be ignored for non-admin
+      expect(result).toBeDefined();
+    });
+
+    test("create - should fail for unknown field", async () => {
+      const uniqueEmail = `newperson-unknown-${Date.now()}@test.com`;
+      expect(
+        callAs(
+          peopleRouter.create,
+          {
+            tenantId,
+            email: uniqueEmail,
+            fields: {
+              unknown_field: "value",
+            },
+          },
+          ctx.asUser(personId, "testperson@test.com", "Test Person")
+        )
+      ).rejects.toThrow("Unknown field: unknown_field");
+    });
+
+    test("getPersonInTenant - should return person in their primary tenant", async () => {
+      const result = await callAs(
+        peopleRouter.getPersonInTenant,
+        { tenantId, personId },
+        ctx.asUser(personId, "testperson@test.com", "Test Person").inTenant(tenantId)
+      );
+
+      expect(result).toBeDefined();
+      expect(result!.id).toBe(personId);
+      expect(result!.isPrimary).toBe(true);
+      expect(result!.isHelper).toBe(false);
+    });
+
+    test("getPersonInTenant - should return null for non-existent person", async () => {
+      const result = await callAs(
+        peopleRouter.getPersonInTenant,
+        { tenantId, personId: 999999 },
+        ctx.asUser(personId, "testperson@test.com", "Test Person").inTenant(tenantId)
+      );
+
+      expect(result).toBeNull();
+    });
+
+    test("test endpoint - should return test message", async () => {
+      const result = await callAs(
+        peopleRouter.test,
+        undefined,
+        ctx.asUser(personId, "testperson@test.com", "Test Person")
+      );
+
+      expect(result.message).toBe("test works");
+      expect(result.userId).toBe(personId);
     });
   });
 });

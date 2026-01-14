@@ -138,12 +138,12 @@ describe("Teams Router", () => {
     test("can add member to team", async () => {
       const result = await callAs(
         teamMembersRouter.addMember,
-        { tenantId, teamId, personId: memberId, role: "member" },
+        { tenantId, teamId, userId: memberId, role: "member" },
         ctx.asUser(ownerId, "owner-teams@test.com", "Owner").inTenant(tenantId).asTenantOwner()
       );
 
       expect(result).toBeDefined();
-      expect(result.personId).toBe(memberId);
+      expect(result.userId).toBe(memberId);
       teamMemberId = result.id;
     });
 
@@ -155,13 +155,13 @@ describe("Teams Router", () => {
       );
 
       expect(result.length).toBe(1);
-      expect(result[0]!.personId).toBe(memberId);
+      expect(result[0]!.userId).toBe(memberId);
     });
 
     test("can update team member role", async () => {
       const result = await callAs(
         teamMembersRouter.updateMember,
-        { tenantId, teamId, personId: memberId, role: "leader" },
+        { tenantId, teamId, userId: memberId, role: "leader" },
         ctx.asUser(ownerId, "owner-teams@test.com", "Owner").inTenant(tenantId).asTenantOwner()
       );
 
@@ -253,7 +253,7 @@ describe("Teams Router", () => {
     test("can remove member from team", async () => {
       const result = await callAs(
         teamMembersRouter.removeMember,
-        { tenantId, teamId, personId: memberId },
+        { tenantId, teamId, userId: memberId },
         ctx.asUser(ownerId, "owner-teams@test.com", "Owner").inTenant(tenantId).asTenantOwner()
       );
 

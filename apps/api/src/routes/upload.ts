@@ -7,6 +7,7 @@ import { people, tenantHelpers } from '@/db/schema'
 import { getDb } from '@/db/connection'
 import { eq, and } from 'drizzle-orm'
 import { isAdmin } from '@/lib/auth-helpers'
+import { logger } from '@/lib/logger'
 
 const upload = new Hono()
 
@@ -137,7 +138,7 @@ upload.post('/photo', async (c) => {
 
     return c.json({ url })
   } catch (error) {
-    console.error('Error uploading photo:', error)
+    logger.error({ err: error }, 'Error uploading photo')
     return c.json({ error: 'Failed to upload photo' }, 500)
   }
 })

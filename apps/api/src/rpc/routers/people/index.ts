@@ -119,41 +119,7 @@ export const peopleRouter = {
         throw new ORPCError("NOT_FOUND", { message: "Person not found" });
       }
 
-      let emailUpdated = false;
-
-      // Handle email update
-      if (input.email !== undefined) {
-        const normalizedEmail = input.email.toLowerCase();
-
-        // Check if email already exists
-        const [existingEmail] = await context.db
-          .select()
-          .from(emails)
-          .where(eq(emails.email, normalizedEmail))
-          .limit(1);
-
-        if (existingEmail) {
-          // Check if it's used by this same person
-          if (currentPerson.emailId !== existingEmail.id) {
-            throw new ORPCError("CONFLICT", { message: "Email already in use" });
-          }
-        } else {
-          // Create new email record
-          const [newEmail] = await context.db
-            .insert(emails)
-            .values({ email: normalizedEmail })
-            .returning();
-
-          if (newEmail) {
-            await context.db
-              .update(people)
-              .set({ emailId: newEmail.id, updatedAt: new Date() })
-              .where(eq(people.id, input.personId));
-            emailUpdated = true;
-          }
-        }
-      }
-
+      // Email is NOT updatable - it's tied to OAuth identity
       // Handle field values update
       if (input.fields && Object.keys(input.fields).length > 0) {
         // Get field definitions for this tenant
@@ -218,8 +184,7 @@ export const peopleRouter = {
         }
       }
 
-      const hasChanges = emailUpdated ||
-        (input.fields && Object.keys(input.fields).length > 0) ||
+      const hasChanges = (input.fields && Object.keys(input.fields).length > 0) ||
         input.isActive !== undefined;
 
       if (!hasChanges) {
@@ -288,30 +253,7 @@ export const peopleRouter = {
         throw new ORPCError("CONFLICT", { message: "Email already in use" });
       }
 
-      const [newEmail] = await context.db
-        .insert(emails)
-        .values({ email: normalizedEmail })
-        .returning();
-
-      if (!newEmail) {
-        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Failed to create email" });
-      }
-
-      // Create person
-      const [person] = await context.db
-        .insert(people)
-        .values({
-          tenantId: input.tenantId,
-          emailId: newEmail.id,
-          role: input.role ?? null,
-        })
-        .returning();
-
-      if (!person) {
-        throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Failed to create person" });
-      }
-
-      // Handle field values if provided
+      // Validate fields before creating anything in DB
       if (input.fields && Object.keys(input.fields).length > 0) {
         const tenantFields = await context.db
           .select()
@@ -320,21 +262,63 @@ export const peopleRouter = {
 
         const fieldMap = new Map(tenantFields.map(f => [f.name, f]));
 
-        for (const [fieldName, value] of Object.entries(input.fields)) {
+        for (const fieldName of Object.keys(input.fields)) {
           const field = fieldMap.get(fieldName);
           if (!field) {
             throw new ORPCError("BAD_REQUEST", { message: `Unknown field: ${fieldName}` });
           }
-
-          await context.db
-            .insert(tenantPeopleFieldValues)
-            .values({
-              personId: person.id,
-              fieldId: field.id,
-              value,
-            });
         }
       }
+
+      // Use transaction to ensure atomicity
+      const person = await context.db.transaction(async (tx) => {
+        const [newEmail] = await tx
+          .insert(emails)
+          .values({ email: normalizedEmail })
+          .returning();
+
+        if (!newEmail) {
+          throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Failed to create email" });
+        }
+
+        // Create person
+        const [newPerson] = await tx
+          .insert(people)
+          .values({
+            tenantId: input.tenantId,
+            emailId: newEmail.id,
+            role: input.role ?? null,
+          })
+          .returning();
+
+        if (!newPerson) {
+          throw new ORPCError("INTERNAL_SERVER_ERROR", { message: "Failed to create person" });
+        }
+
+        // Handle field values if provided
+        if (input.fields && Object.keys(input.fields).length > 0) {
+          const tenantFields = await tx
+            .select()
+            .from(tenantPeopleFields)
+            .where(eq(tenantPeopleFields.tenantId, input.tenantId));
+
+          const fieldMap = new Map(tenantFields.map(f => [f.name, f]));
+
+          for (const [fieldName, value] of Object.entries(input.fields)) {
+            const field = fieldMap.get(fieldName)!; // Already validated above
+
+            await tx
+              .insert(tenantPeopleFieldValues)
+              .values({
+                personId: newPerson.id,
+                fieldId: field.id,
+                value,
+              });
+          }
+        }
+
+        return newPerson;
+      });
 
       return await getPersonWithFields(context.db, person.id);
     }),

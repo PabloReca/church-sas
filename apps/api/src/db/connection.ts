@@ -2,11 +2,12 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 import { config } from "@/config";
+import { logger } from "@/lib/logger";
 
 const databaseUrl = config.database.url;
 
 if (!databaseUrl) {
-  console.warn("Missing DATABASE_URL environment variable");
+  logger.warn("Missing DATABASE_URL environment variable");
 }
 
 const client = databaseUrl ? postgres(databaseUrl) : null;

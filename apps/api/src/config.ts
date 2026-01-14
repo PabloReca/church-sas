@@ -7,42 +7,13 @@ function getRequiredEnv(name: string): string {
   return value;
 }
 
-// Helper to get optional env var
-function getOptionalEnv(name: string): string | undefined {
-  return process.env[name];
+// Helper to get optional env var with default
+function getEnvWithDefault(name: string, defaultValue: string): string {
+  return process.env[name] || defaultValue;
 }
-
-// Parse MinIO URL: minio://accessKey:secretKey@host:port/bucket
-function parseMinioUrl(url: string | undefined) {
-  if (!url) return null;
-
-  try {
-    const parsed = new URL(url);
-    const useSSL = parsed.protocol === 'minios:';
-    const bucket = parsed.pathname.replace(/^\//, '');
-
-    return {
-      endpoint: `${parsed.hostname}${parsed.port ? ':' + parsed.port : ''}`,
-      host: parsed.hostname,
-      port: parsed.port ? parseInt(parsed.port) : (useSSL ? 443 : 9000),
-      accessKey: decodeURIComponent(parsed.username),
-      secretKey: decodeURIComponent(parsed.password),
-      bucket,
-      useSSL,
-    };
-  } catch {
-    return null;
-  }
-}
-
-const minioConfig = parseMinioUrl(getOptionalEnv('MINIO_URL'));
 
 export const config = {
   port: parseInt(getRequiredEnv('PORT')),
-
-  api: {
-    url: getRequiredEnv('API_URL'),
-  },
 
   database: {
     url: getRequiredEnv('DATABASE_URL'),
@@ -52,7 +23,14 @@ export const config = {
     url: getRequiredEnv('FRONTEND_URL'),
   },
 
-  minio: minioConfig,
+  minio: {
+    endpoint: getRequiredEnv('MINIO_ENDPOINT'),
+    port: parseInt(getEnvWithDefault('MINIO_PORT', '9000')),
+    accessKey: getRequiredEnv('MINIO_ACCESS_KEY'),
+    secretKey: getRequiredEnv('MINIO_SECRET_KEY'),
+    bucket: getRequiredEnv('MINIO_BUCKET'),
+    useSSL: getEnvWithDefault('MINIO_USE_SSL', 'false') === 'true',
+  },
 
   google: {
     clientId: getRequiredEnv('GOOGLE_CLIENT_ID'),
@@ -68,10 +46,12 @@ export const config = {
   // Alias for convenience
   jwtSecret: getRequiredEnv('JWT_SECRET'),
 
+  // OpenTelemetry (optional)
+  otel: {
+    endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT, // undefined if not set
+    serviceName: getEnvWithDefault('OTEL_SERVICE_NAME', 'church-api'),
+    serviceVersion: getEnvWithDefault('OTEL_SERVICE_VERSION', '2.0.0'),
+  },
+
   isProduction: process.env.NODE_ENV === 'production',
-
-  insecureHttp: getOptionalEnv('INSECURE_HTTP') === 'true',
-
-  // Master admin email - created automatically on startup
-  masterAdminEmail: getOptionalEnv('MASTER_ADMIN_EMAIL'),
 }

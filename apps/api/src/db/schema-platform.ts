@@ -1,4 +1,4 @@
-import { text, timestamp, integer, serial, numeric, pgSchema, varchar, bigserial } from "drizzle-orm/pg-core";
+import { text, timestamp, integer, serial, numeric, pgSchema, varchar, bigserial, boolean, unique } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 // Platform schema - global SaaS configuration
@@ -33,12 +33,21 @@ export const admins = platformSchema.table("admins", {
   id: serial("id").primaryKey(),
   emailId: bigserial("email_id", { mode: "number" }).notNull().references(() => emails.id).unique(),
   name: varchar("name", { length: 255 }).notNull(),
-  lastname1: varchar("lastname_1", { length: 255 }),
-  lastname2: varchar("lastname_2", { length: 255 }),
-  phone: varchar("phone", { length: 50 }),
+  lastname: varchar("lastname", { length: 255 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+// Keys - musical keys shared across all tenants
+export const keys = platformSchema.table("keys", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 10 }).notNull(), // 'C', 'Db', 'D', etc.
+  isMinor: boolean("is_minor").notNull(), // true = minor, false = major
+  transpositionIndex: integer("transposition_index").notNull(), // 1-12 (C=1, Db=2, ..., B=12)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  unique("keys_name_is_minor_transposition_index_unique").on(table.name, table.isMinor, table.transpositionIndex),
+]);
 
 // Relations
 
@@ -56,8 +65,12 @@ export const adminsRelations = relations(admins, ({ one }) => ({
   }),
 }));
 
-export const tenantPlansRelations = relations(tenantPlans, ({ many }) => ({
-  tenants: many(tenantPlans), // Will be defined in customer schema
+export const tenantPlansRelations = relations(tenantPlans, () => ({
+  // tenants: Will be defined in customer schema
+}));
+
+export const keysRelations = relations(keys, () => ({
+  // songs: Will be related to songs in customer schema
 }));
 
 // Types
@@ -70,3 +83,6 @@ export type NewTenantPlan = typeof tenantPlans.$inferInsert;
 
 export type Admin = typeof admins.$inferSelect;
 export type NewAdmin = typeof admins.$inferInsert;
+
+export type Key = typeof keys.$inferSelect;
+export type NewKey = typeof keys.$inferInsert;

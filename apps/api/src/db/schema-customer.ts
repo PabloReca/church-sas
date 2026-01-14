@@ -1,6 +1,6 @@
-import { text, timestamp, integer, index, unique, uniqueIndex, pgSchema, varchar, bigserial, bigint, boolean, jsonb, check } from "drizzle-orm/pg-core";
+import { text, timestamp, integer, index, unique, uniqueIndex, pgSchema, varchar, bigserial, bigint, boolean, jsonb, check, decimal } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
-import { tenantPlans, emails } from "./schema-platform";
+import { tenantPlans, emails, keys } from "./schema-platform";
 
 // Customer schema - operational data
 export const customerSchema = pgSchema("customer");
@@ -85,6 +85,17 @@ export const tenantUsers = customerSchema.table("tenant_users", {
   index("tenant_users_person_id_idx").on(table.personId),
 ]);
 
+// Tenant Members - people who are official members of the church (independent of user status)
+// A person can be a member without being a user (Manola case)
+// A person can be a user without being a member (Juan case)
+export const tenantMembers = customerSchema.table("tenant_members", {
+  personId: bigint("person_id", { mode: "number" }).primaryKey().references(() => people.id, { onDelete: "cascade" }),
+  memberSince: timestamp("member_since").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  index("tenant_members_person_id_idx").on(table.personId),
+]);
+
 // Tenant Teams
 export const tenantTeams = customerSchema.table(
   "tenant_teams",
@@ -101,20 +112,22 @@ export const tenantTeams = customerSchema.table(
 );
 
 // Tenant Team Members
+// IMPORTANT: Team members MUST be active users (tenant_users)
+// userId is the personId from tenant_users - only active users can be in teams
 export const tenantTeamMembers = customerSchema.table(
   "tenant_team_members",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
     teamId: bigint("team_id", { mode: "number" }).notNull().references(() => tenantTeams.id, { onDelete: "cascade" }),
-    personId: bigint("person_id", { mode: "number" }).notNull().references(() => people.id, { onDelete: "cascade" }),
+    userId: bigint("user_id", { mode: "number" }).notNull().references(() => tenantUsers.personId, { onDelete: "cascade" }),
     tenantId: bigint("tenant_id", { mode: "number" }).notNull().references(() => tenants.id, { onDelete: "cascade" }),
     role: text("role"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [
-    unique("tenant_team_person_unique").on(table.teamId, table.personId),
+    unique("tenant_team_user_unique").on(table.teamId, table.userId),
     index("tenant_team_members_team_id_idx").on(table.teamId),
-    index("tenant_team_members_person_id_idx").on(table.personId),
+    index("tenant_team_members_user_id_idx").on(table.userId),
     index("tenant_team_members_tenant_id_idx").on(table.tenantId),
   ]
 );
@@ -244,7 +257,8 @@ export const tenantEventSlots = customerSchema.table(
   ]
 );
 
-// Event Assignments - person assigned to a slot
+// Event Assignments - user assigned to a slot
+// Only active users can be assigned to events
 export const tenantEventAssignments = customerSchema.table(
   "tenant_event_assignments",
   {
@@ -252,14 +266,54 @@ export const tenantEventAssignments = customerSchema.table(
     eventId: bigint("event_id", { mode: "number" }).notNull().references(() => tenantEvents.id, { onDelete: "cascade" }),
     slotId: bigint("slot_id", { mode: "number" }).notNull().references(() => tenantEventSlots.id, { onDelete: "cascade" }),
     tenantId: bigint("tenant_id", { mode: "number" }).notNull().references(() => tenants.id, { onDelete: "cascade" }),
-    personId: bigint("person_id", { mode: "number" }).notNull().references(() => people.id, { onDelete: "cascade" }),
+    userId: bigint("user_id", { mode: "number" }).notNull().references(() => tenantUsers.personId, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [
     index("tenant_event_assignments_event_id_idx").on(table.eventId),
     index("tenant_event_assignments_slot_id_idx").on(table.slotId),
     index("tenant_event_assignments_tenant_id_idx").on(table.tenantId),
-    index("tenant_event_assignments_person_id_idx").on(table.personId),
+    index("tenant_event_assignments_user_id_idx").on(table.userId),
+  ]
+);
+
+// Songs - song library for worship teams
+export const songs = customerSchema.table(
+  "songs",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    tenantId: bigint("tenant_id", { mode: "number" }).notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 40 }).notNull(),
+    artist: varchar("artist", { length: 40 }).notNull(),
+    album: varchar("album", { length: 40 }).notNull(),
+    releaseYear: integer("release_year").notNull(),
+    bpm: decimal("bpm", { precision: 5, scale: 2 }).notNull(),
+    duration: integer("duration").notNull(), // seconds
+    chordsAndLyrics: text("chords_and_lyrics").notNull(),
+    timeSigNum: integer("time_sig_num").notNull(),
+    timeSigDen: integer("time_sig_den").notNull(),
+    isMaleLead: boolean("is_male_lead").notNull(),
+    originalKeyId: integer("original_key_id").notNull().references(() => keys.id),
+    recommendedMaleOffset: integer("recommended_male_offset").notNull(),
+    recommendedFemaleOffset: integer("recommended_female_offset").notNull(),
+    spotifyUrl: varchar("spotify_url", { length: 200 }),
+    appleMusicUrl: varchar("apple_music_url", { length: 200 }),
+    youtubeUrl: varchar("youtube_url", { length: 200 }),
+    inclusionDate: timestamp("inclusion_date"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("songs_tenant_id_idx").on(table.tenantId),
+    index("songs_original_key_id_idx").on(table.originalKeyId),
+    check("songs_release_year_check", sql`${table.releaseYear} >= 1000 AND ${table.releaseYear} <= 3000`),
+    check("songs_bpm_check", sql`${table.bpm} >= 40 AND ${table.bpm} <= 300`),
+    check("songs_duration_check", sql`${table.duration} >= 60 AND ${table.duration} <= 900`),
+    check("songs_chords_and_lyrics_not_empty", sql`length(${table.chordsAndLyrics}) > 0 AND length(${table.chordsAndLyrics}) <= 4000`),
+    check("songs_time_sig_num_check", sql`${table.timeSigNum} >= 1 AND ${table.timeSigNum} <= 32`),
+    check("songs_time_sig_den_check", sql`${table.timeSigDen} IN (1, 2, 4, 8, 16, 32)`),
+    check("songs_recommended_male_offset_check", sql`${table.recommendedMaleOffset} >= -11 AND ${table.recommendedMaleOffset} <= 11`),
+    check("songs_recommended_female_offset_check", sql`${table.recommendedFemaleOffset} >= -11 AND ${table.recommendedFemaleOffset} <= 11`),
   ]
 );
 
@@ -277,6 +331,7 @@ export const tenantsRelations = relations(tenants, ({ one, many }) => ({
   tenantTeamMembers: many(tenantTeamMembers),
   tenantEventTemplates: many(tenantEventTemplates),
   tenantEvents: many(tenantEvents),
+  songs: many(songs),
 }));
 
 export const tenantPeopleFieldsRelations = relations(tenantPeopleFields, ({ one, many }) => ({
@@ -301,8 +356,11 @@ export const peopleRelations = relations(people, ({ one, many }) => ({
     fields: [people.id],
     references: [tenantUsers.personId],
   }),
+  tenantMember: one(tenantMembers, {
+    fields: [people.id],
+    references: [tenantMembers.personId],
+  }),
   helperTenants: many(tenantHelpers),
-  tenantTeamMembers: many(tenantTeamMembers),
 }));
 
 export const tenantPeopleFieldValuesRelations = relations(tenantPeopleFieldValues, ({ one }) => ({
@@ -327,9 +385,17 @@ export const tenantHelpersRelations = relations(tenantHelpers, ({ one }) => ({
   }),
 }));
 
-export const tenantUsersRelations = relations(tenantUsers, ({ one }) => ({
+export const tenantUsersRelations = relations(tenantUsers, ({ one, many }) => ({
   person: one(people, {
     fields: [tenantUsers.personId],
+    references: [people.id],
+  }),
+  tenantTeamMembers: many(tenantTeamMembers),
+}));
+
+export const tenantMembersRelations = relations(tenantMembers, ({ one }) => ({
+  person: one(people, {
+    fields: [tenantMembers.personId],
     references: [people.id],
   }),
 }));
@@ -348,9 +414,9 @@ export const tenantTeamMembersRelations = relations(tenantTeamMembers, ({ one, m
     fields: [tenantTeamMembers.teamId],
     references: [tenantTeams.id],
   }),
-  person: one(people, {
-    fields: [tenantTeamMembers.personId],
-    references: [people.id],
+  user: one(tenantUsers, {
+    fields: [tenantTeamMembers.userId],
+    references: [tenantUsers.personId],
   }),
   tenant: one(tenants, {
     fields: [tenantTeamMembers.tenantId],
@@ -479,9 +545,20 @@ export const tenantEventAssignmentsRelations = relations(tenantEventAssignments,
     fields: [tenantEventAssignments.tenantId],
     references: [tenants.id],
   }),
-  person: one(people, {
-    fields: [tenantEventAssignments.personId],
-    references: [people.id],
+  user: one(tenantUsers, {
+    fields: [tenantEventAssignments.userId],
+    references: [tenantUsers.personId],
+  }),
+}));
+
+export const songsRelations = relations(songs, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [songs.tenantId],
+    references: [tenants.id],
+  }),
+  originalKey: one(keys, {
+    fields: [songs.originalKeyId],
+    references: [keys.id],
   }),
 }));
 
@@ -504,6 +581,9 @@ export type NewTenantHelper = typeof tenantHelpers.$inferInsert;
 
 export type TenantUser = typeof tenantUsers.$inferSelect;
 export type NewTenantUser = typeof tenantUsers.$inferInsert;
+
+export type TenantMember = typeof tenantMembers.$inferSelect;
+export type NewTenantMember = typeof tenantMembers.$inferInsert;
 
 export type TenantTeam = typeof tenantTeams.$inferSelect;
 export type NewTenantTeam = typeof tenantTeams.$inferInsert;
@@ -534,3 +614,6 @@ export type NewTenantEventSlot = typeof tenantEventSlots.$inferInsert;
 
 export type TenantEventAssignment = typeof tenantEventAssignments.$inferSelect;
 export type NewTenantEventAssignment = typeof tenantEventAssignments.$inferInsert;
+
+export type Song = typeof songs.$inferSelect;
+export type NewSong = typeof songs.$inferInsert;

@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { getDb } from '@/db/connection'
 import { admins, tenantPlans } from '@/db/schema'
+import { logger } from '@/lib/logger'
 
 const health = new Hono()
 
@@ -39,7 +40,7 @@ health.get('/check', async (c) => {
       hasPlans: true,
     })
   } catch (error) {
-    console.error('Health check failed:', error)
+    logger.error({ err: error }, 'Health check failed')
     return c.json({
       ok: false,
       issues: ['Database error'],
@@ -58,7 +59,7 @@ health.get('/ready', async (c) => {
       checks: { database: 'ok' },
     })
   } catch (error) {
-    console.error('Readiness check failed:', error)
+    logger.error({ err: error }, 'Readiness check failed')
     return c.json(
       {
         ready: false,
