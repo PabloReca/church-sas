@@ -31,12 +31,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
       - name: Deploy API Preprod
         working-directory: apps/api
         run: |
-          bun x vercel deploy \
+          pnpm dlx vercel deploy \
             --token=${{ secrets.VERCEL_TOKEN }} \
             --name=church-sas-api-preprod \
             --yes
@@ -47,12 +53,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
       - name: Deploy Web Preprod
         working-directory: apps/web
         run: |
-          bun x vercel deploy \
+          pnpm dlx vercel deploy \
             --token=${{ secrets.VERCEL_TOKEN }} \
             --name=church-sas-web-preprod \
             --yes
@@ -63,12 +75,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
       - name: Deploy API Prod
         working-directory: apps/api
         run: |
-          bun x vercel deploy \
+          pnpm dlx vercel deploy \
             --token=${{ secrets.VERCEL_TOKEN }} \
             --name=church-sas-api-prod \
             --prod \
@@ -79,12 +97,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "pnpm"
+
       - name: Deploy Web Prod
         working-directory: apps/web
         run: |
-          bun x vercel deploy \
+          pnpm dlx vercel deploy \
             --token=${{ secrets.VERCEL_TOKEN }} \
             --name=church-sas-web-prod \
             --prod \

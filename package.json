@@ -1,12 +1,22 @@
 {
   "name": "church-sas",
   "private": true,
-  "workspaces": ["apps/*", "infrastructure"],
+  "workspaces": [
+    "apps/*"
+  ],
   "type": "module",
   "scripts": {
-    "dev": "bun --filter api dev & bun --filter web dev",
-    "dev:api": "bun --filter api dev",
-    "dev:web": "bun --filter web dev"
+    "dev": "pnpm run dev:api & pnpm run dev:web",
+    "dev:api": "pnpm --filter api dev",
+    "dev:web": "pnpm --filter web dev",
+    "build": "pnpm run build:api && pnpm run build:web",
+    "build:api": "pnpm --filter api build",
+    "build:web": "pnpm --filter web build",
+    "test": "pnpm --filter api test",
+    "check": "pnpm --filter web check"
+  },
+  "dependencies": {
+    "zod": "^4.2.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

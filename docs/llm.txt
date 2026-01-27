@@ -1,0 +1,149 @@
+# Church SaaS - LLM Context
+
+## Stack
+
+- **Backend:** Elysia (TypeScript)
+- **Frontend:** SvelteKit 5 (client-side only - NO SSR)
+- **Database:** PostgreSQL + Drizzle ORM
+- **Auth:** JWT in httpOnly cookies (7-day)
+
+## Structure
+
+```
+apps/api/          # Elysia backend
+  src/
+    controllers/   # Business logic
+    routes/        # HTTP endpoints (auth, people, teams, events, tenants)
+    db/            # Schema (schema-platform.ts, schema-customer.ts)
+    lib/           # auth-helpers.ts, oauth-helpers.ts, google.ts, elysia-guards.ts
+  scripts/         # reset-db.ts, seed-platform.ts, seed-demo.ts
+
+apps/web/          # SvelteKit frontend
+  src/routes/      # File-based routing (+layout.svelte has middleware)
+  src/lib/         # components/, stores/auth.ts, api.ts
+```
+
+## Multi-Tenant Data Model
+
+**platform.emails** - Global email registry (one email globally)
+
+**customer.people** - Person identity
+- ONE primary tenant (`tenantId NOT NULL`)
+- One email = one person (`emailId` unique)
+- `role`: 'owner' | 'admin' | null
+
+**customer.tenant_users** - Active users (login access, consumes seats)
+
+**customer.tenant_members** - Church membership (independent from login)
+
+**customer.tenant_helpers** - Multi-tenant volunteers
+
+**Custom fields:** `tenant_people_fields` + `tenant_people_field_values`
+
+**Relationships:**
+```
+platform.emails → customer.people (emailId)
+  ├─> tenant_users (login)
+  ├─> tenant_members (membership)
+  ├─> tenant_helpers (multi-tenant)
+  └─> tenant_people_field_values (custom data)
+```
+
+## Business Rules
+
+1. **Email uniqueness:** One email globally (`people.emailId` unique)
+2. **Login:** Must be in BOTH `people` AND `tenant_users` (INNER JOIN)
+3. **Seats:** Count `tenant_users` rows, cannot exceed plan's `maxSeats`
+4. **Admin:** `role IN ('owner', 'admin')`
+5. **Owner:** One per tenant (unique index)
+
+## Auth Flow (OAuth)
+
+1. User clicks login → Redirect to Google OAuth
+2. Google redirects to `/api/auth/google/callback?code=...`
+3. Exchange code for id_token (Google API)
+4. Verify token → get email
+5. Find in `platform.emails`
+6. Find in `people` INNER JOIN `tenant_users` (must be in BOTH)
+7. Generate JWT: `{ userId, email, tenantId, isTenantAdmin }`
+8. Set httpOnly cookie (7-day)
+9. Redirect to frontend
+
+**Files:**
+- `apps/api/src/routes/auth.ts` - OAuth endpoints
+- `apps/api/src/lib/jwt.ts` - generateJWT, verifyJWT, pending JWTs
+- `apps/api/src/lib/oauth-helpers.ts` - exchangeGoogleCode, redirect
+- `apps/api/src/lib/google.ts` - verifyGoogleToken
+- `apps/api/src/lib/auth-helpers.ts` - isAdmin, requireAdmin
+- `apps/api/src/lib/elysia-guards.ts` - authGuard, adminGuard, tenantUserGuard
+
+## Frontend Routing
+
+**Middleware** (`apps/web/src/routes/+layout.svelte`):
+```
+PUBLIC_ROUTES = ['/login', '/setup-tenant']
+ADMIN_ONLY_ROUTES = ['/admin']
+
+1. Not authenticated + not public → /login
+2. Authenticated + public → home
+3. Non-admin + admin route → /
+4. Admin + home + no tenant → /admin
+5. Everything else → allow
+```
+
+**Routes:**
+- Public: `/login`, `/setup-tenant`
+- Authenticated: `/`, `/profile/[id]`, `/logout`, `/switch-tenant`
+- Admin: `/admin`, `/admin/organizations/[id]`
+
+**Stores:** `apps/web/src/lib/stores/auth.ts`
+- `user` (SessionUser or null)
+- `tenant` (Tenant or null)
+- `loading` (boolean)
+
+**API:** `apps/web/src/lib/api.ts`
+- `getSession()` / `logout()`
+- `rpc` object (type-safe API calls)
+- All requests use `credentials: 'include'`
+
+## Navigation Rules
+
+- Profile: Users see own, admins see any
+- Tenant switch: Show if helps multiple tenants OR is admin
+- Admin routes: Platform admins only
+- Tenant state: `localStorage.tenant_id`
+
+## Database Commands
+
+See `package.json`. Key scripts:
+- `pnpm db:reset` - Drops schemas, migrates, seeds platform
+- `pnpm seed:platform` - Seeds plans, keys, admin
+- `pnpm seed:demo` - Creates demo tenant
+- `pnpm db:generate` - Creates migration from schema changes
+- `pnpm db:migrate` - Applies migrations
+
+**Workflow:**
+1. Modify `apps/api/src/db/schema-*.ts`
+2. `pnpm db:generate` → creates migration
+3. `pnpm db:migrate` OR `pnpm db:reset` (fresh start)
+
+## Context Plugin (Backend)
+
+Routes receive:
+- `db` - Drizzle instance
+- `user` - Authenticated user (from JWT) or null
+- `cookie` - Elysia cookie API
+- `set` - Response helpers
+
+## Code Style
+
+- No emojis
+- TypeScript strict
+- English code/comments, Spanish UI
+- No over-engineering
+- Delete unused code completely
+- Use framework tools
+
+## Environment Variables
+
+See `.env.example`

@@ -1,0 +1,127 @@
+// Grafana Alloy configuration
+// Language: River (https://grafana.com/docs/alloy/latest/get-started/configuration-syntax/)
+
+// ====================================
+// OTLP Receivers (for traces & metrics)
+// ====================================
+
+// Receive OTLP traces over HTTP
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    traces  = [otelcol.processor.batch.default.input]
+    metrics = [otelcol.processor.batch.default.input]
+  }
+}
+
+// ====================================
+// Processors
+// ====================================
+
+// Batch processor for better performance
+otelcol.processor.batch "default" {
+  timeout          = "10s"
+  send_batch_size  = 1024
+
+  output {
+    traces  = [otelcol.exporter.otlp.tempo.input]
+    metrics = [otelcol.exporter.prometheus.default.input]
+  }
+}
+
+// ====================================
+// Trace Exporters (to Tempo)
+// ====================================
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+      insecure = true
+    }
+  }
+}
+
+// ====================================
+// Metrics Exporters (to Prometheus)
+// ====================================
+
+otelcol.exporter.prometheus "default" {
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://localhost:9090/api/v1/write"
+
+    // For now, metrics are collected but not sent anywhere
+    // You can add Prometheus or Mimir later
+  }
+}
+
+// ====================================
+// Loki Receiver (for structured logs)
+// ====================================
+
+// Receive logs via HTTP API (for direct log shipping)
+loki.source.api "default" {
+  http {
+    listen_address = "0.0.0.0"
+    listen_port    = 3100
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+// Receive logs from Docker container stdout/stderr
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = []
+  forward_to = [loki.process.default.receiver]
+}
+
+// Process logs to extract JSON fields from Pino
+loki.process "default" {
+  forward_to = [loki.write.default.receiver]
+
+  // Extract Docker metadata
+  stage.docker {}
+
+  // Parse JSON logs from Pino
+  stage.json {
+    expressions = {
+      level       = "level",
+      msg         = "msg",
+      service     = "service",
+      trace_id    = "trace_id",
+      span_id     = "span_id",
+      environment = "environment",
+    }
+  }
+
+  // Add extracted fields as labels
+  stage.labels {
+    values = {
+      level       = "",
+      service     = "",
+      environment = "",
+    }
+  }
+}
+
+// ====================================
+// Loki Exporter
+// ====================================
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

@@ -1,10 +1,18 @@
-# dependencies (bun install)
+# dependencies
 node_modules
+
+# pnpm
+.pnpm-store
+.pnpm-debug.log*
 
 # output
 out
 dist
+build
 *.tgz
+
+# SvelteKit
+.svelte-kit
 
 # code coverage
 coverage

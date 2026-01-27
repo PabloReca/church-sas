@@ -4,34 +4,36 @@ Multi-tenant church management platform.
 
 ## Stack
 
-- **Runtime:** Bun
-- **API:** Hono + tRPC + Better Auth
-- **Web:** Svelte 5 + Vite
+- **Runtime:** Node.js + pnpm
+- **API:** Elysia
+- **Web:** SvelteKit
 - **Database:** PostgreSQL (Drizzle ORM)
-- **Deploy:** Vercel (configured by Pulumi)
+- **Observability:** OpenTelemetry + Grafana (Alloy + Loki + Tempo)
+- **Storage:** MinIO
 
 ## Structure
+
 ```
 apps/
-├── api/          # Hono backend
-└── web/          # Svelte frontend
-infrastructure/   # Pulumi IaC
+├── api/    # Elysia backend
+└── web/    # SvelteKit frontend
 ```
 
 ## Dev
+
 ```bash
-bun install
-bun dev          # Start api + web
-bun dev:api      # API only (:8000)
-bun dev:web      # Web only (:5173)
+pnpm install
+pnpm dev          # Start all
+pnpm dev -F api   # API only (:8000)
+pnpm dev -F web   # Web only (:5173)
 ```
 
-## Setup projects on vercel
-```bash
-cd infrastructure
-pulumi up
-```
+## Observability
 
-## Deploy source
-- Preprod → on `main` branch
-- Production → on `release`
+Services running on Docker:
+- **Grafana:** http://localhost:3001
+- **Alloy:** http://localhost:12345
+- **PostgreSQL:** localhost:5432
+- **MinIO:** http://localhost:9000
+
+Auto-instrumentation enabled via OpenTelemetry SDK - traces and metrics sent automatically to Tempo/Loki.
