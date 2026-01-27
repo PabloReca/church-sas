@@ -1,5 +1,5 @@
 {
-  "id": "b011bd22-0cad-4cb3-ab5f-f615404b76c1",
+  "id": "f874fd18-37f5-4bd1-9509-6f3f195420a0",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -16,7 +16,7 @@
         },
         "email_id": {
           "name": "email_id",
-          "type": "bigserial",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -84,9 +84,10 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "bigserial",
+          "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "email": {
           "name": "email",
@@ -238,19 +239,20 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "bigserial",
+          "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "tenant_id": {
           "name": "tenant_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "email_id": {
           "name": "email_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -384,7 +386,7 @@
         },
         "tenant_id": {
           "name": "tenant_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -630,13 +632,13 @@
         },
         "tenant_id": {
           "name": "tenant_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "user_id": {
           "name": "user_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -792,7 +794,7 @@
         },
         "tenant_id": {
           "name": "tenant_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -937,7 +939,7 @@
         },
         "tenant_id": {
           "name": "tenant_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -1076,7 +1078,7 @@
         },
         "tenant_id": {
           "name": "tenant_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -1151,7 +1153,7 @@
         },
         "tenant_id": {
           "name": "tenant_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -1277,13 +1279,13 @@
       "columns": {
         "tenant_id": {
           "name": "tenant_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "person_id": {
           "name": "person_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -1378,7 +1380,7 @@
       "columns": {
         "person_id": {
           "name": "person_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -1448,7 +1450,7 @@
         },
         "person_id": {
           "name": "person_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -1568,7 +1570,7 @@
         },
         "tenant_id": {
           "name": "tenant_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -1684,7 +1686,7 @@
         },
         "tenant_id": {
           "name": "tenant_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -1827,15 +1829,9 @@
         },
         "tenant_id": {
           "name": "tenant_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
-        },
-        "proficiency_level": {
-          "name": "proficiency_level",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -1969,13 +1965,13 @@
         },
         "user_id": {
           "name": "user_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "tenant_id": {
           "name": "tenant_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -2117,7 +2113,7 @@
         },
         "tenant_id": {
           "name": "tenant_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -2126,12 +2122,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "proficiency": {
-          "name": "proficiency",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -2221,7 +2211,7 @@
         },
         "tenant_id": {
           "name": "tenant_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -2290,7 +2280,7 @@
       "columns": {
         "person_id": {
           "name": "person_id",
-          "type": "bigint",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -2347,19 +2337,14 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "bigserial",
+          "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "name": {
           "name": "name",
           "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "slug": {
-          "name": "slug",
-          "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
         },
@@ -2380,15 +2365,7 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "tenants_slug_unique": {
-          "name": "tenants_slug_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

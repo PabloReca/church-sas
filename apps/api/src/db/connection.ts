@@ -1,8 +1,11 @@
 import { drizzle } from "drizzle-orm/postgres-js";
+import { type ExtractTablesWithRelations } from "drizzle-orm";
 import postgres from "postgres";
 import * as schema from "./schema";
 import { config } from "@/config";
-import { logger } from "@/lib/logger";
+import { logger } from "@/lib/infra/logger";
+import type { PgTransaction } from "drizzle-orm/pg-core";
+import type { PostgresJsQueryResultHKT } from "drizzle-orm/postgres-js";
 
 const databaseUrl = config.database.url;
 
@@ -14,6 +17,11 @@ const client = databaseUrl ? postgres(databaseUrl) : null;
 const _db = client ? drizzle(client, { schema }) : null;
 
 export type Database = NonNullable<typeof _db>;
+export type DatabaseTransaction = PgTransaction<
+  PostgresJsQueryResultHKT,
+  typeof schema,
+  ExtractTablesWithRelations<typeof schema>
+>;
 
 export function getDb(): Database {
   if (!_db) throw new Error("Database not available");

@@ -4,39 +4,46 @@
   "type": "module",
   "module": "index.ts",
   "exports": {
-    "./rpc": {
-      "types": "./dist/types/rpc/routers/index.d.ts",
-      "default": "./src/rpc/routers/index.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     }
   },
   "scripts": {
-    "dev": "bun --watch src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc --noEmit",
+    "start": "tsx src/index.ts",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "bun run src/db/migrate.ts",
+    "db:migrate": "tsx src/db/migrate.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "seed": "bun run scripts/seed/index.ts"
+    "db:reset": "tsx scripts/reset-db.ts",
+    "seed:platform": "tsx scripts/seed-platform.ts",
+    "seed:demo": "tsx scripts/seed-demo.ts"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.7.6",
-    "@opentelemetry/api": "1.9.0",
-    "@opentelemetry/exporter-metrics-otlp-http": "0.52.1",
-    "@opentelemetry/exporter-trace-otlp-http": "0.52.1",
-    "@opentelemetry/resources": "1.26.0",
-    "@opentelemetry/sdk-metrics": "1.26.0",
-    "@opentelemetry/sdk-trace-base": "1.26.0",
-    "@opentelemetry/sdk-trace-node": "1.26.0",
-    "@opentelemetry/semantic-conventions": "1.26.0",
-    "@orpc/openapi": "^1.13.2",
-    "@orpc/server": "^1.13.2",
-    "@orpc/zod": "^1.13.2",
-    "@scalar/hono-api-reference": "^0.9.30",
-    "cookie": "^0.6.0",
+    "@church/shared": "workspace:*",
+    "@elysiajs/cookie": "^0.8.0",
+    "@elysiajs/cors": "^1.0.2",
+    "@elysiajs/node": "^1.4.3",
+    "@elysiajs/opentelemetry": "^1.0.0",
+    "@elysiajs/swagger": "^1.0.2",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.37.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.45.0",
+    "@opentelemetry/resources": "^1.30.1",
+    "@opentelemetry/sdk-node": "^0.45.0",
+    "@opentelemetry/sdk-trace-node": "^1.30.1",
+    "@opentelemetry/semantic-conventions": "^1.30.1",
+    "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
     "drizzle-zod": "^0.8.3",
-    "hono": "^4.11.1",
+    "elysia": "^1.1.29",
     "jose": "^6.1.3",
     "minio": "^8.0.6",
     "pino": "^10.1.1",
@@ -48,13 +55,16 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
-    "@types/bun": "^1.3.5",
-    "@types/cookie": "^0.6.0",
+    "@types/node": "^24.0.0",
     "@types/uuid": "^11.0.0",
+    "@vitest/coverage-v8": "4.0.17",
+    "@vitest/ui": "^4.0.17",
     "drizzle-kit": "^0.31.8",
     "eslint": "^9.39.2",
     "eslint-plugin-drizzle": "^0.2.3",
     "globals": "^16.5.0",
-    "typescript-eslint": "^8.51.0"
+    "tsx": "^4.19.2",
+    "typescript-eslint": "^8.51.0",
+    "vitest": "^4.0.17"
   }
 }

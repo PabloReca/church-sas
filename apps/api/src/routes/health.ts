@@ -1,74 +1,68 @@
-import { Hono } from 'hono'
-import { getDb } from '@/db/connection'
+import Elysia from 'elysia'
+import { contextPlugin } from '@/lib/elysia/context'
 import { admins, tenantPlans } from '@/db/schema'
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/infra/logger'
 
-const health = new Hono()
+export const healthRoutes = new Elysia({ prefix: '/health', tags: ['Health'] })
+  .use(contextPlugin)
+  .get('/', () => ({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+  }))
+  .get('/check', async ({ db }) => {
+    try {
+      const [adminsList, plansList] = await Promise.all([
+        db.select().from(admins).limit(1),
+        db.select().from(tenantPlans).limit(1),
+      ])
 
-health.get('/', (c) => {
-  return c.json({ status: 'ok', timestamp: new Date().toISOString() })
-})
+      const issues: string[] = []
 
-health.get('/check', async (c) => {
-  try {
-    const db = getDb()
+      if (adminsList.length === 0) {
+        issues.push('No admin exists. Run: bun run scripts/create-first-admin.ts')
+      }
+      if (plansList.length === 0) {
+        issues.push('No plans exist. Run: bun run scripts/create-plans.ts')
+      }
 
-    const [adminsList, plansList] = await Promise.all([
-      db.select().from(admins).limit(1),
-      db.select().from(tenantPlans).limit(1),
-    ])
+      if (issues.length > 0) {
+        return new Response(
+          JSON.stringify({ ok: false, issues }),
+          { status: 503, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
 
-    const issues: string[] = []
-
-    if (adminsList.length === 0) {
-      issues.push('No admin exists. Run: bun run scripts/create-first-admin.ts')
+      return {
+        ok: true,
+        hasAdmin: true,
+        hasPlans: true,
+      }
+    } catch (error) {
+      logger.error({ err: error }, 'Health check failed')
+      return new Response(
+        JSON.stringify({ ok: false, issues: ['Database error'] }),
+        { status: 503, headers: { 'Content-Type': 'application/json' } }
+      )
     }
-    if (plansList.length === 0) {
-      issues.push('No plans exist. Run: bun run scripts/create-plans.ts')
-    }
+  })
+  .get('/ready', async ({ db }) => {
+    try {
+      await db.execute('SELECT 1')
 
-    if (issues.length > 0) {
-      return c.json({
-        ok: false,
-        issues,
-      }, 503)
-    }
-
-    return c.json({
-      ok: true,
-      hasAdmin: true,
-      hasPlans: true,
-    })
-  } catch (error) {
-    logger.error({ err: error }, 'Health check failed')
-    return c.json({
-      ok: false,
-      issues: ['Database error'],
-    }, 503)
-  }
-})
-
-health.get('/ready', async (c) => {
-  try {
-    const db = getDb()
-    await db.execute('SELECT 1')
-
-    return c.json({
-      ready: true,
-      timestamp: new Date().toISOString(),
-      checks: { database: 'ok' },
-    })
-  } catch (error) {
-    logger.error({ err: error }, 'Readiness check failed')
-    return c.json(
-      {
-        ready: false,
+      return {
+        ready: true,
         timestamp: new Date().toISOString(),
-        error: 'Database connection failed',
-      },
-      503
-    )
-  }
-})
-
-export default health
+        checks: { database: 'ok' },
+      }
+    } catch (error) {
+      logger.error({ err: error }, 'Readiness check failed')
+      return new Response(
+        JSON.stringify({
+          ready: false,
+          timestamp: new Date().toISOString(),
+          error: 'Database connection failed',
+        }),
+        { status: 503, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+  })

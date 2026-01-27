@@ -1,8 +1,10 @@
-#!/usr/bin/env bun
+#!/usr/bin/env tsx
+import 'dotenv/config';
 import { readdir, readFile } from "fs/promises";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import postgres from "postgres";
-import { logger } from "@/lib/logger";
+import { logger } from "@/lib/infra/logger";
 
 if (!process.env.DATABASE_URL) {
   logger.error("DATABASE_URL environment variable is required");
@@ -10,7 +12,8 @@ if (!process.env.DATABASE_URL) {
 }
 
 const client = postgres(process.env.DATABASE_URL);
-const MIGRATIONS_DIR = join(import.meta.dir, "../../drizzle");
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const MIGRATIONS_DIR = join(__dirname, "../../drizzle");
 
 logger.info("Starting database migration...");
 
